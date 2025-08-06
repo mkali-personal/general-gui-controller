@@ -21,6 +21,12 @@ from utilities.automations.kalifcode import *
 callback_map = {'twenty ten': lambda: take_all_images(ROC=2422, magnification=10),
                 'twenty twenty': lambda: take_all_images(ROC=2422, magnification=20),
                 'five ten': lambda: take_all_images(ROC=549, magnification=10),
-                'five twenty': lambda: take_all_images(ROC=549, magnification=20)}
+                'five twenty': lambda: take_all_images(ROC=549, magnification=20),
+                'exposure one': lambda: insert_exposure_time(1, 0, 0),
+                'exposure two': lambda: insert_exposure_time(2, 0, 0),
+                'exposure to': lambda: insert_exposure_time(2, 0, 0),
+                'exposure three': lambda: insert_exposure_time(3, 0, 0)}
+
+
 
 start_voice_listener(command_map=callback_map)

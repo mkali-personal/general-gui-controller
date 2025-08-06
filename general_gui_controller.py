@@ -1,4 +1,5 @@
 import time
+from warnings import warn
 
 import cv2
 import pyperclip
@@ -19,7 +20,7 @@ from pynput.keyboard import Key, Controller
 # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 # import pytesseract
 
-GENERAL_GUI_CONTROLLER_TEMPLATES_PATH = r"utilities\ggc-templates"
+GENERAL_GUI_CONTROLLER_TEMPLATES_PATH = r"utilities\automations\ggc-templates"
 
 def minimize_current_window():
     keyboard = Controller()
@@ -85,6 +86,7 @@ def detect_position(
         click: bool = True,
         sleep: Optional[float] = None,
         minimal_confidence: float = 0.8,
+        exception_if_not_found: bool =  False,
         **kwargs,
 ) -> tuple[float, float] | None:
     """
@@ -188,9 +190,7 @@ def detect_position(
     if ext in [".png", ".jpg", ".jpeg", ".bmp"]:
         template_img = cv2.imread(template_path, cv2.IMREAD_COLOR)
         if template_img is None:
-            print(os.getcwd())
-            print(f"[ERROR] Failed to load image template: {template_path}")
-            return None
+            raise FileNotFoundError(f"[ERROR] Failed to load image template: {template_path}, current working directory: {os.getcwd()}")
 
         template_gray = cv2.cvtColor(template_img, cv2.COLOR_BGR2GRAY)
         screen_gray = cv2.cvtColor(screen_rgb, cv2.COLOR_RGB2GRAY)
@@ -229,8 +229,12 @@ def detect_position(
                 time.sleep(sleep)
             return (abs_x, abs_y)
         else:
-            print("[WARNING] Image template not found.")
-            return None
+            failure_text = f"[ERROR] Failed to load image template: {template_path}"
+            if exception_if_not_found:
+                raise RuntimeError(failure_text)
+            else:
+                warn(failure_text)
+                return None
 
     else:
         print(f"[ERROR] Unsupported template type: {ext}")
