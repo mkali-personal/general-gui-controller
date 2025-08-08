@@ -9,7 +9,6 @@ from PIL import ImageGrab
 import pyautogui
 from pynput import keyboard
 from time import sleep
-from pynput.keyboard import Key, Controller
 from plyer import notification
 
 notification.notify(
@@ -22,16 +21,15 @@ GENERAL_GUI_CONTROLLER_TEMPLATES_PATH = r"utilities\automations\ggc-templates"
 
 
 def minimize_current_window():
-    keyboard = Controller()
-    keyboard.press(Key.cmd)  # Windows key
-    keyboard.press(Key.down)  # Down arrow
+    keyboard_controller = keyboard.Controller()
+    keyboard_controller.press(keyboard.Key.cmd)  # Windows key
+    keyboard_controller.press(keyboard.Key.down)  # Down arrow
     time.sleep(0.05)
-    keyboard.release(Key.down)
-    keyboard.release(Key.cmd)
-    time.sleep(0.2)  # Small pause between the two presses
-minimize_current_window()
+    keyboard_controller.release(keyboard.Key.down)
+    keyboard_controller.release(keyboard.Key.cmd)
 
-def get_cursor_position(target_name):
+
+def get_cursor_position(target_name) -> Optional[Tuple[float, float]]:
     print(f"Place the cursor over the\n{target_name}\nand press the left 'Ctrl' on the keyboard")
 
     # Define a variable to store the position
@@ -69,39 +67,6 @@ def get_relative_point_position(x, y, w, h, relative_position: Optional[Tuple[fl
         return x0 + dx, y0 - dy
     else:
         return x + w / 2, y + h / 2
-
-
-def detect_template_and_act(
-        input_template: str,
-        relative_position: Optional[Tuple[float, float]] = None,
-        minimal_confidence: float = 0.8,
-        exception_if_not_found: bool = False,
-        place_cursor: bool = True,
-        click: bool = True,
-        sleep_before_detection: Optional[float] = None,
-        sleep_after_action: Optional[float] = None,
-        paste_text: Optional[str] = None,
-) -> tuple[float, float] | None:
-    assert paste_text is None or click is True, "Cannot paste text without clicking the target location first."
-
-    if sleep_before_detection is not None:
-        sleep(sleep_before_detection)
-
-    coordinates = detect_template(input_template=input_template,
-                                  relative_position=relative_position,
-                                  minimal_confidence=minimal_confidence,
-                                  exception_if_not_found=exception_if_not_found)
-    if coordinates is not None:
-        if click:
-            pyautogui.click(coordinates[0], coordinates[1])
-            if paste_text is not None:
-                paste_value(paste_text, coordinates, click=False, delete_existing=True)
-        elif place_cursor:
-            pyautogui.moveTo(coordinates[0], coordinates[1])
-
-        if sleep_after_action is not None:
-            sleep(sleep_after_action)
-    return coordinates
 
 
 def detect_template(
@@ -162,6 +127,44 @@ def detect_template(
             return None
 
 
+def detect_template_and_act(
+        input_template: Optional[str],
+        relative_position: Optional[Tuple[float, float]] = None,
+        minimal_confidence: float = 0.8,
+        exception_if_not_found: bool = False,
+        place_cursor: bool = True,
+        click: bool = True,
+        sleep_before_detection: Optional[float] = None,
+        sleep_after_action: Optional[float] = None,
+        paste_value=None,
+        override_coordinates: Optional[tuple[float, float]] = None,
+) -> tuple[float, float] | None:
+    assert paste_value is None or click is True, "Cannot paste text without clicking the target location first."
+    assert input_template is not None or override_coordinates is not None, \
+        "Either input_template or override_coordinates must be provided."
+
+    if sleep_before_detection is not None:
+        sleep(sleep_before_detection)
+    if override_coordinates is None:
+        coordinates = detect_template(input_template=input_template,
+                                      relative_position=relative_position,
+                                      minimal_confidence=minimal_confidence,
+                                      exception_if_not_found=exception_if_not_found)
+    else:
+        coordinates = override_coordinates
+    if coordinates is not None:
+        if click:
+            pyautogui.click(coordinates[0], coordinates[1])
+            if paste_value is not None:
+                paste_value(paste_value, coordinates, click=False, delete_existing=True)
+        elif place_cursor:
+            pyautogui.moveTo(coordinates[0], coordinates[1])
+
+        if sleep_after_action is not None:
+            sleep(sleep_after_action)
+    return coordinates
+
+
 def paste_value(value: Optional[str], location, click=True, delete_existing=True):
     """Pastes a given value at a specified screen location."""
     # Copy the value to clipboard
@@ -172,8 +175,11 @@ def paste_value(value: Optional[str], location, click=True, delete_existing=True
     if delete_existing:
         pyautogui.hotkey("ctrl", "a")  # Select any existing text
         pyautogui.hotkey("backspace")  # Clear the field
+    original_clipboard = pyperclip.paste()
     pyperclip.copy(str(value))  # Copy the Hebrew text to the clipboard
+    sleep(0.05)  # Give some time for the clipboard to update
     pyautogui.hotkey('ctrl', 'v')
+    pyperclip.copy(original_clipboard)
 
 
 def record_gui_template():
@@ -221,14 +227,14 @@ def record_gui_template():
     print(f"Saved cropped image to: {output_path}")
 
     if relative_x is None or relative_y is None:
-        templates_usage_syntax = f'detect_position(r"{filename}.png", sleep=0, click=True)'
+        templates_usage_syntax = f'detect_template_and_act(r"{filename}.png", sleep_before_detection=0, click=True)'
     else:
-        templates_usage_syntax = f'detect_position(r"{filename}.png", relative_position=({relative_x:.3f}, {relative_y:.3f}), sleep=0, click=True)'
+        templates_usage_syntax = f'detect_template_and_act(r"{filename}.png", relative_position=({relative_x:.3f}, {relative_y:.3f}), sleep_before_detection=0, click=True)'
     pyperclip.copy(templates_usage_syntax)
     print(templates_usage_syntax)
 
 
 if __name__ == "__main__":
-    # record_gui_template()
-    detect_template('general_gui_controller.py')
+    record_gui_template()
+
 

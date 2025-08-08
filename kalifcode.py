@@ -7,7 +7,10 @@ import json
 import threading
 from plyer import notification
 from datetime import datetime
-import os
+import difflib
+import inspect
+import asyncio
+
 
 
 # Load offline Vosk model
@@ -37,10 +40,8 @@ def audio_callback(indata, frames, time, status):
     audio_q.put(bytes(indata))
 
 
-import difflib
-import inspect
-
 def recognize_loop(command_map, printing_mode: Optional[str] = 'notification'):
+    command_map['log'] = log_notes  # Add logging command
     rec = vosk.KaldiRecognizer(model, 16000)
 
     while True:
@@ -86,7 +87,7 @@ def recognize_loop(command_map, printing_mode: Optional[str] = 'notification'):
             best_match = difflib.get_close_matches(text, command_map.keys(), n=1, cutoff=0.8)
             if not best_match:
                 # Try matching prefix instead
-                prefix_candidates = [cmd for cmd in command_map if text.startswith(cmd[:max(3, len(cmd)//2)])]
+                prefix_candidates = [cmd for cmd in command_map if text.startswith(cmd[:max(6, len(cmd)//2)])]
                 best_match = difflib.get_close_matches(text.split(" ")[0], prefix_candidates, n=1, cutoff=0.7)
 
             if best_match:
@@ -100,6 +101,7 @@ def recognize_loop(command_map, printing_mode: Optional[str] = 'notification'):
                         command_map[cmd]()
                 except Exception as e:
                     print(f"[ERROR running fuzzy-matched command '{cmd}']: {e}")
+
 
 # Entry point — pass your command_map here
 def start_voice_listener(command_map: dict):
