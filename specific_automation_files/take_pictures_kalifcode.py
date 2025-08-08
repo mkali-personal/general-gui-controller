@@ -27,6 +27,4 @@ callback_map = {'twenty ten': lambda: take_all_images(ROC=2422, magnification=10
                 'exposure to': lambda: insert_exposure_time(2, 0, 0),
                 'exposure three': lambda: insert_exposure_time(3, 0, 0)}
 
-
-
 start_voice_listener(command_map=callback_map)

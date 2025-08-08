@@ -17,6 +17,42 @@ if desired_working_dir not in sys.path:
 
 from utilities.automations.general_gui_controller import *
 
+detect_template_and_act(r"copilot icon.png", relative_position=(0.625, 0.480), click=True)
+
+def load_tabular_data(path: str) -> pd.DataFrame:
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"[ERROR] File does not exist: {path}")
+
+    lower_path = path.lower()
+
+    # Case 1: CSV file
+    if lower_path.endswith(".csv"):
+        return pd.read_csv(path)
+
+    # Case 2: Excel file
+    elif lower_path.endswith((".xlsx", ".xls")):
+        xls = pd.ExcelFile(path)
+        sheet_names = xls.sheet_names
+
+        if len(sheet_names) == 1:
+            return pd.read_excel(xls, sheet_name=0)
+
+        elif len(sheet_names) > 1:
+            print("Multiple sheets found:")
+            for idx, name in enumerate(sheet_names[:10]):  # Limit to 10
+                print(f"{idx}: {name}")
+
+            choice = input("Select a sheet by entering its index (0-9): ").strip()
+
+            if not choice.isdigit() or not (0 <= int(choice) < len(sheet_names[:10])):
+                raise ValueError("[ERROR] Invalid sheet selection.")
+
+            return pd.read_excel(xls, sheet_name=int(choice))
+
+    # Unsupported format
+    raise ValueError(f"[ERROR] Unsupported file format: {path}")
+
+
 
 def clean_number(x):
     if isinstance(x, str):
@@ -47,14 +83,8 @@ def remove_vat(price):
     return np.ceil(price / 1.18 * 100) / 100 if isinstance(price, (int, float)) else None
 
 
-def parse_scientific_table(file_path, scientific=True, thorlabs_format=True):
+def parse_scientific_table(df: pd.DataFrame, thorlabs_format: bool = False, scientific: bool = True) -> pd.DataFrame:
     # Check the file extension and load the file
-    if file_path.endswith('.csv'):
-        df = pd.read_csv(file_path)
-    elif file_path.endswith('.xlsx'):
-        df = pd.read_excel(file_path)
-    else:
-        raise ValueError("Unsupported file format. Please select a .csv or .xlsx file.")
 
     if scientific:
         # Define the target columns in lowercase
@@ -106,8 +136,8 @@ def parse_scientific_table(file_path, scientific=True, thorlabs_format=True):
 
 
 input("got to the TAFNIT main window, and make sure it is maximized.\n"
-      "When you will need to choose supplier or a quote file in Tafnit, the script will wait for you to choose it,\nand after"
-      "choosing, you will not to go back here and press enter\n"
+      "When you will need to choose supplier or a quote file in Tafnit, the script will wait for you to choose it,\n"
+      "and after choosing, you will not to go back here and press enter\n"
       "Press Enter to continue")
 scientific_or_food_text = input("If this is a scientific purchase, press s, and if it is a food purchase, press f.\n")
 if scientific_or_food_text.lower() == 's':
@@ -118,39 +148,29 @@ else:
     print("Invalid input. Please enter 's' for scientific or 'f' for food.")
     exit()
 
-
-
-BOX_LL = (3, 1072)  #  get_cursor_position("lower-left corner of the tafnit window")
-BOX_UR = (1916, 4)  #  get_cursor_position("upper-right corner of the tafnit window")
+# BOX_LL = get_cursor_position("lower-left corner of the tafnit window")  # (3, 1072)  #
+# BOX_UR = get_cursor_position("upper-right corner of the tafnit window")  # (1916, 4)  #
 SLEEP_TIME = 0.2
 LONG_SLEEP_TIME = 2
 # %% Main menu navigation::
-button_position = detect_position('ivrit - main.png', relative_position=(0.5, 0.3),
-                                  crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=SLEEP_TIME)
+button_position = detect_template_and_act('ivrit - main.png', relative_position=(0.5, 0.3), click=True)
 
-button_position = detect_position('yazam.png', relative_position=(0.5, 0.3),
-                                  crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=SLEEP_TIME)
+button_position = detect_template_and_act('yazam.png', relative_position=(0.5, 0.3), click=True)
 
-button_position = detect_position('ivrit - secondary.png',
-                                  crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=LONG_SLEEP_TIME)
-button_position = detect_position('klita.png',
-                                  crop_ll=BOX_LL, crop_ur=BOX_UR, click=True)
+button_position = detect_template_and_act('ivrit - secondary.png', click=True)
+button_position = detect_template_and_act('klita.png', click=True)
 pyautogui.moveTo(2, 2)
 time.sleep(LONG_SLEEP_TIME)
 
 if scientific:
-    button_position = detect_position("drisha lerechesh.png",
-                                          crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=8)
+    button_position = detect_template_and_act("drisha lerechesh.png", click=True)
 else:
-    button_position = detect_position('hazmana kaspit sherutim.png',
-                                      crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=8)
+    button_position = detect_template_and_act('hazmana kaspit sherutim.png', click=True)
 
 # %% Supplier selection:
-button_position = detect_position('sapak.png',
-                                  crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=2)
+button_position = detect_template_and_act('sapak.png', click=True)
 
-button_position = detect_position('sochen.png', relative_position=(1.6, 0.5),
-                                  crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=2)
+button_position = detect_template_and_act('sochen.png', relative_position=(1.6, 0.5), click=True)
 
 continue_keyword = input("Choose the quote from the list, go back here, and press enter to continue or s to stop and exit\n")
 if continue_keyword.lower() == 'e':
@@ -159,84 +179,63 @@ if continue_keyword.lower() == 'e':
 minimize_current_window()
 
 # %% Upload quote:
-nispachim_position = detect_position('nispachim.png',
-                                     crop_ll=BOX_LL, crop_ur=BOX_UR)
+nispachim_position = detect_template_and_act('nispachim.png')
 pyautogui.click(nispachim_position)
 sleep(3)
 
-sherutei_archive_position = detect_position('sherutei archive.png',
-                                            crop_ll=BOX_LL, crop_ur=BOX_UR, sleep=SLEEP_TIME, click=True)
+sherutei_archive_position = detect_template_and_act('sherutei archive.png', click=True)
 
-teur_mismach_position = detect_position('teur mismach.png',
-                                        crop_ll=BOX_LL, crop_ur=BOX_UR, relative_position=(0.1, 0.5), click=True, sleep=SLEEP_TIME)
+teur_mismach_position = detect_template_and_act('teur mismach.png', relative_position=(0.1, 0.5), click=True)
 
 pyautogui.write('quote')
 
-haalaa_lasharat_position = detect_position('haalaa lasharat.png',
-                                           crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=LONG_SLEEP_TIME)
+haalaa_lasharat_position = detect_template_and_act('haalaa lasharat.png', click=True)
 
 
-bechar_kovets_position = detect_position('bechar kovets.png',
-                                         crop_ll=BOX_LL, crop_ur=BOX_UR, click=True)
+bechar_kovets_position = detect_template_and_act('bechar kovets.png', click=True)
 continue_keyword = input("Choose the quote from the list, go back here, and press enter to continue or s to stop and exit\n")
 if continue_keyword.lower() == 'e':
     exit()
 minimize_current_window()
-ishur_upload_position = detect_position('ishur - upload.png',
-                                        crop_ll=BOX_LL, crop_ur=BOX_UR, relative_position=(0.8, 0.5),
-                                        minimal_confidence=0.97, click=True, sleep=LONG_SLEEP_TIME)
+ishur_upload_position = detect_template_and_act('ishur - upload.png', relative_position=(0.8, 0.5),
+                                                minimal_confidence=0.97, click=True)
 
 
 # %%
 
-pritim_position = detect_position('pritim.png',
-                                  crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=LONG_SLEEP_TIME)
+pritim_position = detect_template_and_act('pritim.png', click=True)
 
-makat_position = detect_position('makat_sapak.png',relative_position = (-0.945, 0.542),
-                                 crop_ll=BOX_LL, crop_ur=BOX_UR, click=False)
+makat_position = detect_template_and_act('makat_sapak.png', relative_position=(-0.945, 0.542), click=False)
 
-hanacha_position = detect_position('hanacha.png', relative_position=(-0.822, 0.571),
-                                      crop_ll=BOX_LL, crop_ur=BOX_UR, click=False)
+hanacha_position = detect_template_and_act('hanacha.png', relative_position=(-0.822, 0.571), click=False)
 
-teur_position = detect_position('teur.png', relative_position=(-1, 0.5),
-                                crop_ll=BOX_LL, crop_ur=BOX_UR, click=False)
+teur_position = detect_template_and_act('teur.png', relative_position=(-1, 0.5), click=False)
 
-kamut_position = detect_position('kamut.png', relative_position=(-1, 0.5),
-                                 crop_ll=BOX_LL, crop_ur=BOX_UR, click=False)
+kamut_position = detect_template_and_act('kamut.png', relative_position=(-1, 0.5), click=False)
 
-mechir_bematbea_position = detect_position('mechir bematbea.png', relative_position=(-1, 0.5),
-                                           crop_ll=BOX_LL, crop_ur=BOX_UR, click=False)
+mechir_bematbea_position = detect_template_and_act('mechir bematbea.png', relative_position=(-1, 0.5), click=False)
 
-adken_shura_position = detect_position('adken shura.png',
-                                       crop_ll=BOX_LL, crop_ur=BOX_UR, click=False)
+adken_shura_position = detect_template_and_act('adken shura.png', click=False)
 
 # %%
 
-category_1_position = detect_position('categories.png', relative_position=(-0.4, 0.85),
-                                      crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=SLEEP_TIME)
+category_1_position = detect_template_and_act('categories.png', relative_position=(-0.4, 0.85), click=True)
 if scientific:
-    category_1_choice_position = detect_position('scientific equipment.png',
-                                                 relative_position=(0.5, 0.5), crop_ll=BOX_LL, crop_ur=BOX_UR,
-                                                 click=True, sleep=SLEEP_TIME)
+    category_1_choice_position = detect_template_and_act('scientific equipment.png', relative_position=(0.5, 0.5),
+                                                         click=True)
 else:
-    category_1_choice_position = detect_position('sherutim.png', relative_position=(0.9, 0.5),
-                                        crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=SLEEP_TIME)
+    category_1_choice_position = detect_template_and_act('sherutim.png', relative_position=(0.9, 0.5), click=True)
 
-category_2_position = detect_position('categories.png', relative_position=(-0.4, 0.65),
-                                      crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=SLEEP_TIME)
+category_2_position = detect_template_and_act('categories.png', relative_position=(-0.4, 0.65), click=True)
 if scientific:
-    category_2_choice_position = detect_position('laboratory instruments.png',
-                                                 relative_position=(0.5, 0.5), crop_ll=BOX_LL, crop_ur=BOX_UR,
-                                                 sleep=SLEEP_TIME, click=True)
+    category_2_choice_position = detect_template_and_act('laboratory instruments.png', relative_position=(0.5, 0.5),
+                                                         click=True)
 else:
-    category_2_choice_position = detect_position('eruim kibud achzaka.png',
-                                                 crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=SLEEP_TIME)
+    category_2_choice_position = detect_template_and_act('eruim kibud achzaka.png', click=True)
 if not scientific:
-    category_3_position = detect_position('categories.png', relative_position=(-0.4, 0.35),
-                                          crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=SLEEP_TIME)
+    category_3_position = detect_template_and_act('categories.png', relative_position=(-0.4, 0.35), click=True)
 
-    category_3_choice_position = detect_position('kibud kal.png',
-                                                 crop_ll=BOX_LL, crop_ur=BOX_UR, click=True, sleep=SLEEP_TIME)
+    category_3_choice_position = detect_template_and_act('kibud kal.png', click=True)
 
 # %%
 
@@ -301,11 +300,10 @@ if scientific:
         exit()
 
 items_csv = wait_for_path_from_clipboard(filetype='csv')
+df = load_tabular_data(items_csv)
 
 if scientific:
     df = parse_scientific_table(items_csv, thorlabs_format=True)
-else:
-    df = pd.read_csv(items_csv)
 
 for _, sample_row in df.iterrows():
     paste_row_to_fields(sample_row)
