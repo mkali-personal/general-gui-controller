@@ -10,12 +10,11 @@ from datetime import datetime
 import difflib
 import inspect
 import asyncio
-
+from local_config import PATH_STT_MODEL
 
 
 # Load offline Vosk model
-vosk_model_path = "utilities/automations/models/vosk-model-small-en-us-0.15"  # vosk-model-en-us-0.22-lgraph
-model = vosk.Model(vosk_model_path)
+model = vosk.Model(PATH_STT_MODEL)
 log_path = "utilities/automations/voice_command_log.txt"
 
 # Queue to receive audio data
@@ -40,8 +39,8 @@ def audio_callback(indata, frames, time, status):
     audio_q.put(bytes(indata))
 
 
-def recognize_loop(command_map, printing_mode: Optional[str] = 'notification'):
-    command_map['log'] = log_notes  # Add logging command
+def recognize_loop(command_map, print_speech: Optional[bool] = True, notification_speech: Optional[bool] = True):
+    command_map['note'] = log_notes  # Add logging command
     rec = vosk.KaldiRecognizer(model, 16000)
 
     while True:
@@ -52,55 +51,56 @@ def recognize_loop(command_map, printing_mode: Optional[str] = 'notification'):
             if not text:
                 continue
 
-            if printing_mode == 'print':
-                print(f"[Recognized]: {text}")
-            elif printing_mode == 'notification':
-                notification.notify(
-                    title="Voice Command Recognized",
-                    message=text,
-                    timeout=0.2
-                )
+            if text:
+                if print_speech:
+                    print(f"[Recognized]: {text}")
+                if notification_speech:
+                    notification.notify(
+                        title="Voice Command Recognized",
+                        message=text,
+                        timeout=0.2
+                    )
 
-            # 1. Exact match
-            if text in command_map:
-                try:
-                    command_map[text]()
-                except Exception as e:
-                    print(f"[ERROR running command '{text}']: {e}")
-                continue
-
-            # 2. Startswith match
-            for command, func in command_map.items():
-                if text.startswith(command + " "):
-                    remaining = text[len(command):].strip()
+                # 1. Exact match
+                if text in command_map:
                     try:
-                        sig = inspect.signature(func)
-                        if len(sig.parameters) >= 1:
-                            func(remaining)
-                        else:
-                            func()
+                        command_map[text]()
                     except Exception as e:
-                        print(f"[ERROR running command '{command}' with arg '{remaining}']: {e}")
-                    return
+                        print(f"[ERROR running command '{text}']: {e}")
+                    continue
 
-            # 3. Fuzzy match using difflib
-            best_match = difflib.get_close_matches(text, command_map.keys(), n=1, cutoff=0.8)
-            if not best_match:
-                # Try matching prefix instead
-                prefix_candidates = [cmd for cmd in command_map if text.startswith(cmd[:max(6, len(cmd)//2)])]
-                best_match = difflib.get_close_matches(text.split(" ")[0], prefix_candidates, n=1, cutoff=0.7)
+                # 2. Startswith match
+                for command, func in command_map.items():
+                    if text.startswith(command + " "):
+                        remaining = text[len(command):].strip()
+                        try:
+                            sig = inspect.signature(func)
+                            if len(sig.parameters) >= 1:
+                                func(remaining)
+                            else:
+                                func()
+                        except Exception as e:
+                            print(f"[ERROR running command '{command}' with arg '{remaining}']: {e}")
+                        return
 
-            if best_match:
-                cmd = best_match[0]
-                try:
-                    remaining = text[len(cmd):].strip()
-                    sig = inspect.signature(command_map[cmd])
-                    if len(sig.parameters) >= 1:
-                        command_map[cmd](remaining)
-                    else:
-                        command_map[cmd]()
-                except Exception as e:
-                    print(f"[ERROR running fuzzy-matched command '{cmd}']: {e}")
+                # 3. Fuzzy match using difflib
+                best_match = difflib.get_close_matches(text, command_map.keys(), n=1, cutoff=0.8)
+                if not best_match:
+                    # Try matching prefix instead
+                    prefix_candidates = [cmd for cmd in command_map if text.startswith(cmd[:max(6, len(cmd)//2)])]
+                    best_match = difflib.get_close_matches(text.split(" ")[0], prefix_candidates, n=1, cutoff=0.7)
+
+                if best_match:
+                    cmd = best_match[0]
+                    try:
+                        remaining = text[len(cmd):].strip()
+                        sig = inspect.signature(command_map[cmd])
+                        if len(sig.parameters) >= 1:
+                            command_map[cmd](remaining)
+                        else:
+                            command_map[cmd]()
+                    except Exception as e:
+                        print(f"[ERROR running fuzzy-matched command '{cmd}']: {e}")
 
 
 # Entry point — pass your command_map here
@@ -108,11 +108,13 @@ def start_voice_listener(command_map: dict):
     threading.Thread(target=recognize_loop, args=(command_map,), daemon=True).start()
 
     with sd.RawInputStream(samplerate=16000, blocksize=8000, dtype='int16',
-                           channels=1, callback=audio_callback):
+                           channels=1, callback=audio_callback, device=2):
         print("🎤 Listening for commands...")
         while True:
             pass  # keep main thread alive
 
+
+# %%
 
 if __name__ == "__main__":
     # Command function map
