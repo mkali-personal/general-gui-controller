@@ -41,16 +41,14 @@ def insert_gain(gain=400):
 
 
 def generate_name_path(session_path, magnification, exposure_time_ms, gain, ROC):
-    session_path_temp = os.path.join(session_path, str(ROC))
-    file_name = f"{magnification:d}x - {exposure_time_ms:d}ms - {gain:d}%.png"
-    return os.path.join(session_path_temp, file_name)
+    file_name = f"{ROC:d} - {magnification:d}x - {exposure_time_ms:d}ms - {gain:d}%.png"
+    return os.path.join(session_path, file_name)
 
 
 def take_an_image(session_path, magnification, exposure_time_ms, gain, ROC):
     s, ms, mus = decompose_exposure_time(exposure_time_ms)
     insert_exposure_time(0, 100, 0)
     insert_exposure_time(s, ms, mus)
-    sleep(0.1)
     insert_gain(gain)
     sleep(0.1)
     sleep(exposure_time_ms/1000)
@@ -70,15 +68,10 @@ def take_all_images(magnification, ROC, session_path=None):
     if session_path is None:
         session_path = wait_for_path_from_clipboard(filetype='dir')
 
-    session_path_549 = os.path.join(session_path, '549')
-    session_path_2422 = os.path.join(session_path, '2422')
-
     os.makedirs(session_path, exist_ok=True)
-    os.makedirs(session_path_549, exist_ok=True)
-    os.makedirs(session_path_2422, exist_ok=True)
 
-    take_an_image(session_path, magnification, exposure_time_ms=5000, gain=400, ROC=ROC)
+    # take_an_image(session_path, magnification, exposure_time_ms=5000, gain=400, ROC=ROC)
     take_an_image(session_path, magnification, exposure_time_ms=5000, gain=3000, ROC=ROC)
-    insert_exposure_time(3, 0, 0)
+    insert_exposure_time(2, 0, 0)
     insert_gain(5000)
     winsound.Beep(1000, 500)
