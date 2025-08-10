@@ -188,7 +188,7 @@ nispachim_position = detect_template_and_act('nispachim.png', click=True, sleep_
 sherutei_archive_position = detect_template_and_act('sherutei archive.png', click=True,
                                                     sleep_after_action=MEDIUM_SLEEP_TIME)
 teur_mismach_position = detect_template_and_act('teur mismach.png', relative_position=(0.1, 0.5), click=True,
-                                                paste_value='quote')
+                                                value_to_past='quote')
 haalaa_lasharat_position = detect_template_and_act('haalaa lasharat.png', click=True,
                                                    sleep_after_action=MEDIUM_SLEEP_TIME)
 bechar_kovets_position = detect_template_and_act('bechar kovets.png', click=True)

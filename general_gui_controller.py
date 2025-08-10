@@ -136,10 +136,10 @@ def detect_template_and_act(
         click: bool = True,
         sleep_before_detection: Optional[float] = None,
         sleep_after_action: Optional[float] = None,
-        paste_value=None,
+        value_to_past=None,
         override_coordinates: Optional[tuple[float, float]] = None,
 ) -> tuple[float, float] | None:
-    assert paste_value is None or click is True, "Cannot paste text without clicking the target location first."
+    assert value_to_past is None or click is True, "Cannot paste text without clicking the target location first."
     assert input_template is not None or override_coordinates is not None, \
         "Either input_template or override_coordinates must be provided."
 
@@ -155,8 +155,8 @@ def detect_template_and_act(
     if coordinates is not None:
         if click:
             pyautogui.click(coordinates[0], coordinates[1])
-            if paste_value is not None:
-                paste_value(paste_value, coordinates, click=False, delete_existing=True)
+            if value_to_past is not None:
+                paste_value(value_to_past, coordinates, click=False, delete_existing=True)
         elif place_cursor:
             pyautogui.moveTo(coordinates[0], coordinates[1])
 
@@ -168,9 +168,9 @@ def detect_template_and_act(
 def paste_value(value: Optional[str], location, click=True, delete_existing=True):
     """Pastes a given value at a specified screen location."""
     # Copy the value to clipboard
-    if value is None or location is None:
+    if value is None:
         return
-    if click:
+    if click and location is not None:
         pyautogui.click(location)  # Click to focus on the field
     if delete_existing:
         pyautogui.hotkey("ctrl", "a")  # Select any existing text
