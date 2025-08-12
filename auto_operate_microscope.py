@@ -3,6 +3,7 @@ from utilities.automations.general_gui_controller import *
 import winsound
 import os
 from utilities.media_tools.utils import wait_for_path_from_clipboard
+import keyboard
 
 
 # %%
@@ -21,6 +22,32 @@ def memorize_locations():
     d['ok_cancel_gain'] = detect_template_and_act('ok cancel.png', relative_position=(0.3, 0.5), click=True,
                                                   sleep_after_action=0.2)
     return d
+
+
+def zoom_in(value):
+    # Get screen dimensions
+    screen_width, screen_height = pyautogui.size()
+
+    # Move mouse to center
+    center_x = screen_width // 2
+    center_y = screen_height // 2
+    pyautogui.moveTo(center_x, center_y)
+
+    # Press Ctrl
+    pyautogui.keyDown('ctrl')
+
+    # Perform 3 scrolls down (zoom out)
+    pyautogui.scroll(value * 120)
+
+    # Release Ctrl
+    pyautogui.keyUp('ctrl')
+
+
+def alt_tab(value):
+    print('Alt Tab1')
+    keyboard.press_and_release('alt+tab'),
+    print('Alt Tab2')
+
 
 
 def decompose_exposure_time(exposure_time_ms: float):
