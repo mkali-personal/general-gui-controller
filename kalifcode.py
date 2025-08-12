@@ -41,7 +41,7 @@ def audio_callback(indata, frames, time, status):
 def recognize_loop(command_map, print_speech: Optional[bool] = True, notification_speech: Optional[bool] = True):
     command_map['note'] = log_notes  # Add logging command
     command_map['type'] = lambda s: paste_value(value=s, location=None, click=False, delete_existing=False)  # Add logging command
-
+    print(notification_speech)
     rec = vosk.KaldiRecognizer(model, 16000)
 
     while True:
