@@ -69,11 +69,34 @@ def get_relative_point_position(x, y, w, h, relative_position: Optional[Tuple[fl
         return x + w / 2, y + h / 2
 
 
+def wait_for_template(input_template: str,
+                      sleep_cycle: float = 0,
+                      verbose: bool = True,
+                      ):
+    hold_script = True
+    I_DOTS = 0
+
+    while hold_script:
+        button_position = detect_template(input_template,
+                                          exception_if_not_found=False,
+                                          warn_if_not_found=False,)
+        if button_position is not None:
+            hold_script = False
+        else:
+            if verbose:
+                I_DOTS = I_DOTS % 3
+                dots = '.' * I_DOTS
+                print(f"Waiting for template '{input_template}' to appear{dots}", end="\r")
+                I_DOTS += 1
+            sleep(sleep_cycle)
+
+
 def detect_template(
         input_template: str,
         relative_position: Optional[Tuple[float, float]] = None,
         minimal_confidence: float = 0.8,
         exception_if_not_found: bool = False,
+        warn_if_not_found: bool = True,
 ) -> tuple[Optional[float], Optional[float]] | None:
     template_path = os.path.join(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH, input_template)
     base_name, ext = os.path.splitext(template_path)
@@ -122,7 +145,7 @@ def detect_template(
         failure_text = f"[ERROR] Failed to fit template: {template_path}"
         if exception_if_not_found:
             raise RuntimeError(failure_text)
-        else:
+        elif warn_if_not_found:
             warn(failure_text)
             return None
 
@@ -132,6 +155,7 @@ def detect_template_and_act(
         relative_position: Optional[Tuple[float, float]] = None,
         minimal_confidence: float = 0.8,
         exception_if_not_found: bool = False,
+        warn_if_not_found: bool = True,
         place_cursor: bool = True,
         click: bool = True,
         sleep_before_detection: Optional[float] = None,
@@ -149,7 +173,8 @@ def detect_template_and_act(
         coordinates = detect_template(input_template=input_template,
                                       relative_position=relative_position,
                                       minimal_confidence=minimal_confidence,
-                                      exception_if_not_found=exception_if_not_found)
+                                      exception_if_not_found=exception_if_not_found,
+                                      warn_if_not_found=warn_if_not_found)
     else:
         coordinates = override_coordinates
     if coordinates is not None:

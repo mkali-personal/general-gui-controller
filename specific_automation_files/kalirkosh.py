@@ -21,6 +21,7 @@ import re
 from utilities.media_tools.utils import wait_for_path_from_clipboard
 import winsound
 
+pyautogui.FAILSAFE = False
 
 def load_tabular_data(path: str) -> pd.DataFrame:
     if not os.path.isfile(path):
@@ -134,13 +135,13 @@ def parse_scientific_table(df: pd.DataFrame, thorlabs_format: bool = False, scie
         df['quantity'] = df['quantity'].apply(clean_number)
 
         return df
-
-
-input("got to the TAFNIT main window, and make sure it is maximized.\n"
-      "When you will need to choose supplier or a quote file in Tafnit, the script will wait for you to choose it,\n"
-      "and after choosing, you will not to go back here and press enter\n"
-      "Whenever you here a beep sound, come back here and follow the instructions.\n"
-      "Press Enter to continue")
+#
+#
+# # input("got to the TAFNIT main window, and make sure it is maximized.\n"
+# #       "When you will need to choose supplier or a quote file in Tafnit, the script will wait for you to choose it,\n"
+# #       "and after choosing, you will not to go back here and press enter\n"
+# #       "Whenever you here a beep sound, come back here and follow the instructions.\n"
+# #       "Press Enter to continue")
 scientific_or_food_text = input("If this is a scientific purchase, press s, and if it is a food purchase, press f.\n")
 if scientific_or_food_text.lower() == 's':
     scientific = True
@@ -149,27 +150,35 @@ elif scientific_or_food_text.lower() == 'f':
 else:
     print("Invalid input. Please enter 's' for scientific or 'f' for food.")
     exit()
-
-# BOX_LL = get_cursor_position("lower-left corner of the tafnit window")  # (3, 1072)  #
-# BOX_UR = get_cursor_position("upper-right corner of the tafnit window")  # (1916, 4)  #
+#
+# # BOX_LL = get_cursor_position("lower-left corner of the tafnit window")  # (3, 1072)  #
+# # BOX_UR = get_cursor_position("upper-right corner of the tafnit window")  # (1916, 4)  #
 SHORT_SLEEP_TIME = 0.2
 MEDIUM_SLEEP_TIME = 1
 LONG_SLEEP_TIME = 4
-# %% Main menu navigation::
+# # %% Main menu navigation::
 button_position = detect_template_and_act('ivrit - main.png', relative_position=(0.5, 0.3), click=True,
                                           sleep_after_action=SHORT_SLEEP_TIME)
-button_position = detect_template_and_act('yazam.png', relative_position=(0.5, 0.3), click=True,
-                                          sleep_after_action=SHORT_SLEEP_TIME)
+button_position = detect_template_and_act('yazam.png', relative_position=(-0.5, 0.3), click=True,
+                                          sleep_after_action=0.5)
 button_position = detect_template_and_act('ivrit - secondary.png', click=True, sleep_after_action=SHORT_SLEEP_TIME)
 button_position = detect_template_and_act('klita.png', click=True)
 pyautogui.moveTo(2, 2)
 time.sleep(LONG_SLEEP_TIME)
 
 if scientific:
-    button_position = detect_template_and_act("drisha lerechesh.png", click=True, sleep_after_action=LONG_SLEEP_TIME)
+    button_position = detect_template_and_act("drisha lerechesh.png", click=True, sleep_after_action=10)
 else:
-    button_position = detect_template_and_act('hazmana kaspit sherutim.png', click=True,
-                                              sleep_after_action=LONG_SLEEP_TIME)
+    button_position = detect_template_and_act('hazmana kaspit sherutim.png', click=True)
+
+hold_script = True
+while hold_script:
+    button_position = detect_template_and_act('ivrit - main.png', click=False, exception_if_not_found=False)
+    if button_position is not None:
+        hold_script = False
+    else:
+        print("Waiting for the main menu to appear...")
+        sleep(1)
 
 # %% Supplier selection:
 button_position = detect_template_and_act('sapak.png', click=True, sleep_after_action=LONG_SLEEP_TIME)
@@ -177,20 +186,20 @@ button_position = detect_template_and_act('sochen.png', relative_position=(1.6, 
 
 winsound.Beep(880, 500)
 continue_keyword = input(
-    "Choose the quote from the list, go back here, and press enter to continue or s to stop and exit\n")
+    "Choose the supplier from the list, go back here, and press enter to continue or s to stop and exit\n")
 if continue_keyword.lower() == 'e':
     exit()
 
 minimize_current_window()
 
 # %% Upload quote:
-nispachim_position = detect_template_and_act('nispachim.png', click=True, sleep_after_action=LONG_SLEEP_TIME)
+nispachim_position = detect_template_and_act('nispachim.png', click=True, sleep_after_action=SHORT_SLEEP_TIME)
 sherutei_archive_position = detect_template_and_act('sherutei archive.png', click=True,
                                                     sleep_after_action=MEDIUM_SLEEP_TIME)
 teur_mismach_position = detect_template_and_act('teur mismach.png', relative_position=(0.1, 0.5), click=True,
-                                                value_to_past='quote')
+                                                value_to_past='quote', sleep_after_action=SHORT_SLEEP_TIME)
 haalaa_lasharat_position = detect_template_and_act('haalaa lasharat.png', click=True,
-                                                   sleep_after_action=MEDIUM_SLEEP_TIME)
+                                                   sleep_after_action=5)
 bechar_kovets_position = detect_template_and_act('bechar kovets.png', click=True)
 winsound.Beep(880, 500)
 continue_keyword = input(
@@ -207,7 +216,7 @@ pritim_position = detect_template_and_act('pritim.png', click=True, sleep_after_
 
 makat_position = detect_template('makat_sapak.png', relative_position=(-0.945, 0.542))
 
-hanacha_position = detect_template('hanacha.png', relative_position=(-0.822, 0.571))
+hanacha_position = detect_template('hanacha.png', relative_position=(-0.5, 0.5))
 
 teur_position = detect_template('teur.png', relative_position=(-1, 0.5))
 
@@ -265,8 +274,11 @@ def paste_row_to_fields(row):
         paste_value(row['discount'], hanacha_position)
         sleep(SHORT_SLEEP_TIME)
         pyautogui.click(category_1_position)
+        sleep(SHORT_SLEEP_TIME)
         pyautogui.click(category_1_choice_position)
+        sleep(SHORT_SLEEP_TIME)
         pyautogui.click(category_2_position)
+        sleep(SHORT_SLEEP_TIME)
         pyautogui.click(category_2_choice_position)
         sleep(SHORT_SLEEP_TIME)
         pyautogui.click(adken_shura_position)
@@ -288,30 +300,47 @@ def paste_row_to_fields(row):
         pyautogui.press('enter')
         sleep(SHORT_SLEEP_TIME)
 
-
+winsound.Beep(880, 500)
 thorlabs_format = False
 if scientific:
-    thorlabs_format = input("You will now be prompted to choose a csv\excel file for the items details.\n"
-                            "is it specifically in Thorlabs format? (Y/N) and press Enter to continue")
+    winsound.Beep(880, 500)
+    thorlabs_format = input("Copy the path to the csv containing the items to be ordered to your clipboard.\n"
+                            "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letter does not matter)\n"
+                            "There is no need to remove strings from the values. that is, No need to change '10 %' to 10 and '250.00 USD' to 250.\n"
+                            "Notice that in Excel you can choose Data -> Get Data -> From file -> From PDF to automaticall import tables from a PDF file to you excel.\n"
+                            "After copying, come back here and press here 'y' if it is Thorlabs format and 'n' if not (without quotes), and then press enter to continue")
     if thorlabs_format.lower() == 'y':
         thorlabs_format = True
     elif thorlabs_format.lower() == 'n':
         thorlabs_format = False
         input(
-            "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letter does not matter)\n"
-            "There is no need to remove strings from the values. that is, No need to change '10 %' to 10 and '250.00 USD' to 250.\n"
-            "Notice that in Excel you can choose Data -> Get Data -> From file -> From PDF to automaticall import tables from a PDF file to you excel.\n"
-            "Press Enter to continue")
+            )
     else:
         print("Invalid input. Please enter 'y' for Thorlabs format or 'n' for non-Thorlabs format.")
         exit()
+else:
+    input(
+        "Copy the path to the csv containing the items to be ordered to your clipboard\n"
+        "Copy the path to the csv containing the items to be ordered to your clipboard. After copying\n"
+        "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letter does not matter)\n"
+        "After copying come back here and press enter to continue")
 
+print('Copy the path to the csv with \n\n')
 items_csv = wait_for_path_from_clipboard(filetype='csv')
+
 df = load_tabular_data(items_csv)
 
 if scientific:
-    df = parse_scientific_table(items_csv, thorlabs_format=True)
+    df = parse_scientific_table(df, thorlabs_format=thorlabs_format)
+else:
+    df.columns = df.columns.str.lower()
 
 for _, sample_row in df.iterrows():
     paste_row_to_fields(sample_row)
     sleep(LONG_SLEEP_TIME)
+
+winsound.Beep(880, 500)
+sleep(MEDIUM_SLEEP_TIME)
+winsound.Beep(880, 500)
+sleep(MEDIUM_SLEEP_TIME)
+winsound.Beep(880, 500)
