@@ -3,6 +3,7 @@ from utilities.automations.general_gui_controller import *
 import winsound
 import os
 from utilities.media_tools.utils import wait_for_path_from_clipboard
+import keyboard
 
 
 # %%
@@ -23,16 +24,42 @@ def memorize_locations():
     return d
 
 
+def zoom_in(value):
+    # Get screen dimensions
+    screen_width, screen_height = pyautogui.size()
+
+    # Move mouse to center
+    center_x = screen_width // 2
+    center_y = screen_height // 2
+    pyautogui.moveTo(center_x, center_y)
+
+    # Press Ctrl
+    pyautogui.keyDown('ctrl')
+
+    # Perform 3 scrolls down (zoom out)
+    pyautogui.scroll(value * 120)
+
+    # Release Ctrl
+    pyautogui.keyUp('ctrl')
+
+
+def alt_tab(value):
+    print('Alt Tab1')
+    keyboard.press_and_release('alt+tab'),
+    print('Alt Tab2')
+
+
+
 def decompose_exposure_time(exposure_time_ms: float):
     total_us = int(round(exposure_time_ms * 1000))
     seconds = total_us // 1_000_000
     remaining_us = total_us % 1_000_000
     milliseconds = remaining_us // 1000
-    microseconds = remaining_us % 1000
+    microseconds = remaining_us % 1000 if remaining_us is not None else None
     return seconds, milliseconds, microseconds
 
 
-def insert_exposure_time(s=5, ms=0, mus=0, locations_dict: Optional[dict] = None):
+def insert_exposure_time(s=5, ms=0, mus=None, locations_dict: Optional[dict] = None):
     if locations_dict is None:
         locations_dict = dict()
     detect_template_and_act(r"exposure_time.png", click=True,
@@ -45,9 +72,9 @@ def insert_exposure_time(s=5, ms=0, mus=0, locations_dict: Optional[dict] = None
 
     detect_template_and_act('s-ms-mus.png', relative_position=(0.5, -0.5), click=True, value_to_past=ms,
                             override_coordinates=locations_dict.get('ms'))
-
-    detect_template_and_act('s-ms-mus.png', relative_position=(0.8, -0.5), click=True, value_to_past=mus,
-                            override_coordinates=locations_dict.get('mus'))
+    if mus is not None:
+        detect_template_and_act('s-ms-mus.png', relative_position=(0.8, -0.5), click=True, value_to_past=mus,
+                                override_coordinates=locations_dict.get('mus'))
     detect_template_and_act('ok cancel.png', relative_position=(0.3, 0.5), click=True, sleep_after_action=0.4,
                             override_coordinates=locations_dict.get('ok_cancel_exposure_time'))
 
@@ -63,19 +90,21 @@ def insert_gain(gain=400, locations_dict: Optional[dict] = None):
                             override_coordinates=locations_dict.get('ok_cancel_gain'))
 
 
-def generate_name_path(session_path, magnification, exposure_time_ms, gain, ROC):
-    file_name = f"{ROC:d} - {magnification:d}x - {exposure_time_ms:d}ms - {gain:d}%.png"
+def generate_name_path(session_path, magnification, exposure_time_ms, gain, side):
+    if not isinstance(side, str):
+        side = f"{side:d}"
+    file_name = f"{side} - {magnification:d}x - {exposure_time_ms:d}ms - {gain:d}%.png"
     return os.path.join(session_path, file_name)
 
 
-def take_an_image(session_path, magnification, exposure_time_ms, gain, ROC, locations_dict):
+def take_an_image(session_path, magnification, exposure_time_ms, gain, side, locations_dict):
     s, ms, mus = decompose_exposure_time(exposure_time_ms)
     insert_exposure_time(0, 100, 0, locations_dict=locations_dict)
     insert_gain(gain, locations_dict=locations_dict)
     insert_exposure_time(s, ms, mus, locations_dict=locations_dict)
     sleep(0.1)
     sleep(exposure_time_ms/1000)
-    name_path = generate_name_path(session_path, magnification, exposure_time_ms, gain, ROC)
+    name_path = generate_name_path(session_path, magnification, exposure_time_ms, gain, side)
     pyautogui.hotkey('ctrl', 's')
     pyperclip.copy(name_path)  # Copy the Hebrew text to the clipboard
     sleep(0.05)  # Give some time for the clipboard to update
@@ -90,13 +119,15 @@ def take_an_image(session_path, magnification, exposure_time_ms, gain, ROC, loca
         raise Exception("overwriting file")
 
 
-def take_all_images(magnification, ROC, session_path=None, locations_dict: Optional[dict] = None):
+def take_all_images(magnification, side, session_path=None, locations_dict: Optional[dict] = None):
     if session_path is None:
         session_path = wait_for_path_from_clipboard(filetype='dir')
 
     os.makedirs(session_path, exist_ok=True)
 
-    take_an_image(session_path, magnification, exposure_time_ms=5000, gain=3000, ROC=ROC, locations_dict=locations_dict)
+    take_an_image(session_path, magnification, exposure_time_ms=5000, gain=400, side=side, locations_dict=locations_dict)
+    take_an_image(session_path, magnification, exposure_time_ms=5000, gain=3000, side=side,
+                  locations_dict=locations_dict)
     insert_exposure_time(2, 0, 0, locations_dict=locations_dict)
     insert_gain(5000, locations_dict=locations_dict)
     winsound.Beep(880, 500)

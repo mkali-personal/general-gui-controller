@@ -20,4 +20,4 @@ if desired_working_dir not in sys.path:
 
 from utilities.automations.auto_operate_microscope import *
 
-take_all_images(ROC=2422, magnification=10)
+take_all_images(magnification=10, side=2422)
