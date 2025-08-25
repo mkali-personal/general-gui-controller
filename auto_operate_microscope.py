@@ -67,13 +67,13 @@ def insert_exposure_time(s=5, ms=0, mus=None, locations_dict: Optional[dict] = N
     detect_template_and_act(r"exposure_time.png", relative_position=(2.5, 0.5), click=True, sleep_after_action=0.2,
                             override_coordinates=locations_dict.get('exposure_time'))
 
-    detect_template_and_act('s-ms-mus.png', relative_position=(0.1, -0.5), click=True, value_to_past=s,
+    detect_template_and_act('s-ms-mus.png', relative_position=(0.1, -0.5), click=True, value_to_paste=s,
                             override_coordinates=locations_dict.get('s'))
 
-    detect_template_and_act('s-ms-mus.png', relative_position=(0.5, -0.5), click=True, value_to_past=ms,
+    detect_template_and_act('s-ms-mus.png', relative_position=(0.5, -0.5), click=True, value_to_paste=ms,
                             override_coordinates=locations_dict.get('ms'))
     if mus is not None:
-        detect_template_and_act('s-ms-mus.png', relative_position=(0.8, -0.5), click=True, value_to_past=mus,
+        detect_template_and_act('s-ms-mus.png', relative_position=(0.8, -0.5), click=True, value_to_paste=mus,
                                 override_coordinates=locations_dict.get('mus'))
     detect_template_and_act('ok cancel.png', relative_position=(0.3, 0.5), click=True, sleep_after_action=0.4,
                             override_coordinates=locations_dict.get('ok_cancel_exposure_time'))
@@ -84,7 +84,7 @@ def insert_gain(gain=400, locations_dict: Optional[dict] = None):
         locations_dict = dict()
     detect_template_and_act("gain.png", relative_position=(2, 0.5), click=True, sleep_after_action=0.2,
                             override_coordinates=locations_dict.get('gain'))
-    detect_template_and_act("Range 100 5000.png", relative_position=(0.5, -0.3), click=True, value_to_past=gain,
+    detect_template_and_act("Range 100 5000.png", relative_position=(0.5, -0.3), click=True, value_to_paste=gain,
                             override_coordinates=locations_dict.get('gain_range'))
     detect_template_and_act('ok cancel.png', relative_position=(0.3, 0.5), click=True, sleep_after_action=0.4,
                             override_coordinates=locations_dict.get('ok_cancel_gain'))

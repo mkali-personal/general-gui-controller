@@ -23,6 +23,7 @@ import winsound
 
 pyautogui.FAILSAFE = False
 
+
 def load_tabular_data(path: str) -> pd.DataFrame:
     if not os.path.isfile(path):
         raise FileNotFoundError(f"[ERROR] File does not exist: {path}")
@@ -137,11 +138,14 @@ def parse_scientific_table(df: pd.DataFrame, thorlabs_format: bool = False, scie
         return df
 #
 #
-# # input("got to the TAFNIT main window, and make sure it is maximized.\n"
-# #       "When you will need to choose supplier or a quote file in Tafnit, the script will wait for you to choose it,\n"
-# #       "and after choosing, you will not to go back here and press enter\n"
-# #       "Whenever you here a beep sound, come back here and follow the instructions.\n"
-# #       "Press Enter to continue")
+winsound.Beep(880, 500)
+input("got to the TAFNIT main window, and make sure it is maximized on your main screen (where the notification is).\n"
+      "When you will need to choose supplier or a quote file in Tafnit, the script will wait for you to choose it,\n"
+      "and after choosing, you will need to go back here and press enter\n"
+      "Whenever you here a beep sound (speakers/earphones need to be connected and on, not muted), come back here and follow the instructions.\n"
+      "Press Enter to continue")
+
+winsound.Beep(880, 500)
 scientific_or_food_text = input("If this is a scientific purchase, press s, and if it is a food purchase, press f.\n")
 if scientific_or_food_text.lower() == 's':
     scientific = True
@@ -151,38 +155,37 @@ else:
     print("Invalid input. Please enter 's' for scientific or 'f' for food.")
     exit()
 #
-# # BOX_LL = get_cursor_position("lower-left corner of the tafnit window")  # (3, 1072)  #
-# # BOX_UR = get_cursor_position("upper-right corner of the tafnit window")  # (1916, 4)  #
 SHORT_SLEEP_TIME = 0.2
 MEDIUM_SLEEP_TIME = 1
 LONG_SLEEP_TIME = 4
-# # %% Main menu navigation::
-button_position = detect_template_and_act('ivrit - main.png', relative_position=(0.5, 0.3), click=True,
+# # # %% Main menu navigation::
+button_position = detect_template_and_act('ivrit - main', relative_position=(0.5, 0.3), click=True,
                                           sleep_after_action=SHORT_SLEEP_TIME)
-button_position = detect_template_and_act('yazam.png', relative_position=(-0.5, 0.3), click=True,
+button_position = detect_template_and_act('yazam', relative_position=(-0.5, 0.3), click=True,
                                           sleep_after_action=0.5)
-button_position = detect_template_and_act('ivrit - secondary.png', click=True, sleep_after_action=SHORT_SLEEP_TIME)
-button_position = detect_template_and_act('klita.png', click=True)
+button_position = detect_template_and_act('ivrit - secondary', click=True, sleep_after_action=SHORT_SLEEP_TIME)
+button_position = detect_template_and_act('klita', click=True)
 pyautogui.moveTo(2, 2)
-time.sleep(LONG_SLEEP_TIME)
+time.sleep(1)
 
 if scientific:
-    button_position = detect_template_and_act("drisha lerechesh.png", click=True, sleep_after_action=10)
+    button_position = detect_template_and_act("drisha lerechesh", click=True, sleep_after_action=10)
 else:
-    button_position = detect_template_and_act('hazmana kaspit sherutim.png', click=True)
+    button_position = detect_template_and_act('hazmana kaspit sherutim', click=True)
 
-hold_script = True
-while hold_script:
-    button_position = detect_template_and_act('ivrit - main.png', click=False, exception_if_not_found=False)
-    if button_position is not None:
-        hold_script = False
-    else:
-        print("Waiting for the main menu to appear...")
-        sleep(1)
+# Wait for the menu to fully load:
+wait_for_template('ivrit - main')
 
 # %% Supplier selection:
-button_position = detect_template_and_act('sapak.png', click=True, sleep_after_action=LONG_SLEEP_TIME)
-button_position = detect_template_and_act('sochen.png', relative_position=(1.6, 0.5), click=True)
+button_position = detect_template_and_act('sapak', click=True, sleep_after_action=SHORT_SLEEP_TIME)
+
+wait_for_template('tafnit - pirtei sochen.png')
+
+detect_template_and_act(input_template='tafnit - sochen',
+                        secondary_template='tafnit - open window button',
+                        secondary_template_direction='right'),
+
+wait_for_template('tafnit - external window toolbar')
 
 winsound.Beep(880, 500)
 continue_keyword = input(
@@ -193,63 +196,62 @@ if continue_keyword.lower() == 'e':
 minimize_current_window()
 
 # %% Upload quote:
-nispachim_position = detect_template_and_act('nispachim.png', click=True, sleep_after_action=SHORT_SLEEP_TIME)
-sherutei_archive_position = detect_template_and_act('sherutei archive.png', click=True,
+nispachim_position = detect_template_and_act('nispachim', click=True, sleep_after_action=SHORT_SLEEP_TIME)
+sherutei_archive_position = detect_template_and_act('sherutei archive', click=True,
                                                     sleep_after_action=MEDIUM_SLEEP_TIME)
-teur_mismach_position = detect_template_and_act('teur mismach.png', relative_position=(0.1, 0.5), click=True,
-                                                value_to_past='quote', sleep_after_action=SHORT_SLEEP_TIME)
-haalaa_lasharat_position = detect_template_and_act('haalaa lasharat.png', click=True,
-                                                   sleep_after_action=5)
-bechar_kovets_position = detect_template_and_act('bechar kovets.png', click=True)
+teur_mismach_position = detect_template_and_act('teur mismach', relative_position=(0.1, 0.5), click=True,
+                                                sleep_after_action=SHORT_SLEEP_TIME, value_to_paste='quote')
+haalaa_lasharat_position = detect_template_and_act('haalaa lasharat', click=True)
+bechar_kovets_position = detect_template_and_act('bechar kovets', click=True)
 winsound.Beep(880, 500)
 continue_keyword = input(
     "Choose the quote from the list, go back here, and press enter to continue or s to stop and exit\n")
 if continue_keyword.lower() == 'e':
     exit()
 minimize_current_window()
-ishur_upload_position = detect_template_and_act('ishur - upload.png', relative_position=(0.8, 0.5),
-                                                minimal_confidence=0.97, click=True)
+ishur_upload_position = detect_template_and_act('ishur - upload', relative_position=(0.8, 0.5),
+                                                minimal_confidence=0.97, click=True, wait_for_template_to_appear=False)
 
 # %%
 
-pritim_position = detect_template_and_act('pritim.png', click=True, sleep_after_action=LONG_SLEEP_TIME)
+pritim_position = detect_template_and_act('pritim', click=True, sleep_after_action=MEDIUM_SLEEP_TIME)
 
-makat_position = detect_template('makat_sapak.png', relative_position=(-0.945, 0.542))
+makat_position = detect_template('makat_sapak', relative_position=(-0.945, 0.542))
 
-hanacha_position = detect_template('hanacha.png', relative_position=(-0.5, 0.5))
+hanacha_position = detect_template('hanacha', relative_position=(-0.5, 0.5))
 
-teur_position = detect_template('teur.png', relative_position=(-1, 0.5))
+teur_position = detect_template('teur', relative_position=(-1, 0.5))
 
-kamut_position = detect_template('kamut.png', relative_position=(-1, 0.5))
+kamut_position = detect_template('kamut', relative_position=(-1, 0.5))
 
-mechir_bematbea_position = detect_template('mechir bematbea.png', relative_position=(-1, 0.5))
+mechir_bematbea_position = detect_template('mechir bematbea', relative_position=(-1, 0.5))
 
-adken_shura_position = detect_template('adken shura.png')
+adken_shura_position = detect_template('adken shura')
 
 # %%
 
-category_1_position = detect_template_and_act('categories.png', relative_position=(-0.4, 0.85), click=True,
+category_1_position = detect_template_and_act('categories', relative_position=(-0.4, 0.85), click=True,
                                               sleep_after_action=SHORT_SLEEP_TIME)
 if scientific:
-    category_1_choice_position = detect_template_and_act('scientific equipment.png', relative_position=(0.5, 0.5),
+    category_1_choice_position = detect_template_and_act('scientific equipment', relative_position=(0.5, 0.5),
                                                          click=True, sleep_after_action=SHORT_SLEEP_TIME)
 else:
-    category_1_choice_position = detect_template_and_act('sherutim.png', relative_position=(0.9, 0.5), click=True,
+    category_1_choice_position = detect_template_and_act('sherutim', relative_position=(0.9, 0.5), click=True,
                                                          sleep_after_action=SHORT_SLEEP_TIME)
 
-category_2_position = detect_template_and_act('categories.png', relative_position=(-0.4, 0.65), click=True,
+category_2_position = detect_template_and_act('categories', relative_position=(-0.4, 0.65), click=True,
                                               sleep_after_action=SHORT_SLEEP_TIME)
 if scientific:
-    category_2_choice_position = detect_template_and_act('laboratory instruments.png', relative_position=(0.5, 0.5),
+    category_2_choice_position = detect_template_and_act('laboratory instruments', relative_position=(0.5, 0.5),
                                                          click=True, sleep_after_action=SHORT_SLEEP_TIME)
 else:
-    category_2_choice_position = detect_template_and_act('eruim kibud achzaka.png', click=True,
+    category_2_choice_position = detect_template_and_act('eruim kibud achzaka', click=True,
                                                          sleep_after_action=SHORT_SLEEP_TIME)
 if not scientific:
-    category_3_position = detect_template_and_act('categories.png', relative_position=(-0.4, 0.35), click=True,
+    category_3_position = detect_template_and_act('categories', relative_position=(-0.4, 0.35), click=True,
                                                   sleep_after_action=SHORT_SLEEP_TIME)
 
-    category_3_choice_position = detect_template_and_act('kibud kal.png', click=True,
+    category_3_choice_position = detect_template_and_act('kibud kal', click=True,
                                                          sleep_after_action=SHORT_SLEEP_TIME)
 
 
