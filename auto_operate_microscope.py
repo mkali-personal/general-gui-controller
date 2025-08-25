@@ -49,7 +49,6 @@ def alt_tab(value):
     print('Alt Tab2')
 
 
-
 def decompose_exposure_time(exposure_time_ms: float):
     total_us = int(round(exposure_time_ms * 1000))
     seconds = total_us // 1_000_000
@@ -125,7 +124,7 @@ def take_all_images(magnification, side, session_path=None, locations_dict: Opti
 
     os.makedirs(session_path, exist_ok=True)
 
-    take_an_image(session_path, magnification, exposure_time_ms=5000, gain=400, side=side, locations_dict=locations_dict)
+    # take_an_image(session_path, magnification, exposure_time_ms=5000, gain=400, side=side, locations_dict=locations_dict)
     take_an_image(session_path, magnification, exposure_time_ms=5000, gain=3000, side=side,
                   locations_dict=locations_dict)
     insert_exposure_time(2, 0, 0, locations_dict=locations_dict)
