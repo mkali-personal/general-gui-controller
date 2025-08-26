@@ -61,11 +61,10 @@ def decompose_exposure_time(exposure_time_ms: float):
 def insert_exposure_time(s=5, ms=0, mus=None, locations_dict: Optional[dict] = None):
     if locations_dict is None:
         locations_dict = dict()
-    detect_template_and_act(r"exposure_time.png", click=True,
-                            override_coordinates=locations_dict.get('exposure_time_label'))
-    detect_template_and_act(r"exposure_time.png", relative_position=(2.5, 0.5), click=True, sleep_after_action=0.2,
+    detect_template_and_act(r"exposure_time.png", secondary_template=r"microscope_camera - toolbar border",
+                            secondary_template_direction="right",
+                            relative_position=(-1, 0.5), click=True, sleep_after_action=0.2,
                             override_coordinates=locations_dict.get('exposure_time'))
-
     detect_template_and_act('s-ms-mus.png', relative_position=(0.1, -0.5), click=True, value_to_paste=s,
                             override_coordinates=locations_dict.get('s'))
 
@@ -81,7 +80,9 @@ def insert_exposure_time(s=5, ms=0, mus=None, locations_dict: Optional[dict] = N
 def insert_gain(gain=400, locations_dict: Optional[dict] = None):
     if locations_dict is None:
         locations_dict = dict()
-    detect_template_and_act("gain.png", relative_position=(2, 0.5), click=True, sleep_after_action=0.2,
+    detect_template_and_act("gain.png", secondary_template=r"microscope_camera - toolbar border",
+                            secondary_template_direction="right",
+                            relative_position=(-1, 0.5), click=True, sleep_after_action=0.2,
                             override_coordinates=locations_dict.get('gain'))
     detect_template_and_act("Range 100 5000.png", relative_position=(0.5, -0.3), click=True, value_to_paste=gain,
                             override_coordinates=locations_dict.get('gain_range'))
@@ -123,7 +124,8 @@ def take_all_images(magnification, side, session_path=None, locations_dict: Opti
         session_path = wait_for_path_from_clipboard(filetype='dir')
 
     os.makedirs(session_path, exist_ok=True)
-
+    detect_template_and_act(input_template=r"exposure_time.png", click=True,
+                            override_coordinates=locations_dict.get('exposure_time_label'))
     # take_an_image(session_path, magnification, exposure_time_ms=5000, gain=400, side=side, locations_dict=locations_dict)
     take_an_image(session_path, magnification, exposure_time_ms=5000, gain=3000, side=side,
                   locations_dict=locations_dict)
