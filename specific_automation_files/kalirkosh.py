@@ -177,7 +177,7 @@ else:
 wait_for_template('ivrit - main')
 
 # %% Supplier selection:
-button_position = detect_template_and_act('sapak', click=True, sleep_after_action=SHORT_SLEEP_TIME)
+button_position = detect_template_and_act('sapak', click=True, sleep_after_action=SHORT_SLEEP_TIME, sleep_before_detection=1)
 
 wait_for_template('tafnit - pirtei sochen.png')
 
@@ -211,10 +211,46 @@ if continue_keyword.lower() == 'e':
 minimize_current_window()
 ishur_upload_position = detect_template_and_act('ishur - upload', relative_position=(0.8, 0.5),
                                                 minimal_confidence=0.97, click=True, wait_for_template_to_appear=False)
+# %% Add Note
+sleep(3)
+detect_template_and_act('hearot', click=True, sleep_after_action=SHORT_SLEEP_TIME)
+
+if scientific:
+    detect_template_and_act('weight estimation', click=True, sleep_after_action=SHORT_SLEEP_TIME, value_to_paste='30cmX30cmX30cm  5kg', relative_position=(-0.5, 0.5))
+    winsound.Beep(880, 500)
+    input("Put the actual dimensions, then come back here and press enter to continue")
+    pritim_position = detect_template_and_act('pritim', click=True, sleep_after_action=MEDIUM_SLEEP_TIME)
+
+else:
+    notes_position = detect_template_and_act(input_template='hearot nosafot',
+                            secondary_template='tafnit - field right edge',
+                            secondary_template_direction='left',
+                            click=True,
+                            sleep_after_action=SHORT_SLEEP_TIME,
+                            value_to_paste='נשמח להזמנה 26/08/2025-ל בשעה 12:30. שם איש קשר - מיכאל קלי. טלפון - 0545952783. מכון ויצמן, בניין פיזיקה, כניסה ראשית.')
+    winsound.Beep(880, 500)
+    input("Put the actual date and contact details, then come back here and press enter to continue")
+    pyautogui.click(notes_position)
+    sleep(3)
+    pyautogui.hotkey('ctrl', 'a')
+    sleep(3)
+    pyautogui.hotkey('ctrl', 'c')
+    sleep(3)
+    pritim_position = detect_template_and_act('pritim', click=True, sleep_after_action=MEDIUM_SLEEP_TIME)
+    sleep(3)
+    detect_template_and_act(input_template='pritim - hearot',
+                            secondary_template='tafnit - field right edge',
+                            secondary_template_direction='left',
+                            click=True,
+                            sleep_after_action=SHORT_SLEEP_TIME)
+    sleep(3)
+    pyautogui.hotkey('ctrl', 'v')
+    sleep(3)
+winsound.Beep(880, 500)
 
 # %%
 
-pritim_position = detect_template_and_act('pritim', click=True, sleep_after_action=MEDIUM_SLEEP_TIME)
+# pritim_position = detect_template_and_act('pritim', click=True, sleep_after_action=MEDIUM_SLEEP_TIME)
 
 makat_position = detect_template('makat_sapak', relative_position=(-0.945, 0.542))
 
@@ -307,7 +343,7 @@ thorlabs_format = False
 if scientific:
     winsound.Beep(880, 500)
     thorlabs_format = input("Copy the path to the csv containing the items to be ordered to your clipboard.\n"
-                            "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letter does not matter)\n"
+                            "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letters does not matter)\n"
                             "There is no need to remove strings from the values. that is, No need to change '10 %' to 10 and '250.00 USD' to 250.\n"
                             "Notice that in Excel you can choose Data -> Get Data -> From file -> From PDF to automaticall import tables from a PDF file to you excel.\n"
                             "After copying, come back here and press here 'y' if it is Thorlabs format and 'n' if not (without quotes), and then press enter to continue")
@@ -322,7 +358,6 @@ if scientific:
         exit()
 else:
     input(
-        "Copy the path to the csv containing the items to be ordered to your clipboard\n"
         "Copy the path to the csv containing the items to be ordered to your clipboard. After copying\n"
         "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letter does not matter)\n"
         "After copying come back here and press enter to continue")
