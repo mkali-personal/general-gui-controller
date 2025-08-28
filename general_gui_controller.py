@@ -4,7 +4,7 @@ import cv2
 import pyperclip
 import numpy as np
 import os
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Callable, Union
 from PIL import ImageGrab
 import pyautogui
 from pynput import keyboard
@@ -68,12 +68,17 @@ def get_relative_point_position(x, y, w, h, relative_position: Optional[Tuple[fl
         return x + w / 2, y + h / 2
 
 
+import time
+
+
 def wait_for_template(input_template: str,
-                      sleep_cycle: float = 0,
                       verbose: bool = True,
+                      max_searching_time: Optional[float] = None
                       ):
     hold_script = True
     I_DOTS = 0
+    start_time = time.time()
+
     print(f"Waiting for template '{input_template}' to appear", end="\r")
     while hold_script:
         button_position = detect_template(input_template,
@@ -82,13 +87,19 @@ def wait_for_template(input_template: str,
         if button_position is not None:
             print(f"Found template: {input_template}")
             hold_script = False
+            return button_position  # return coordinates directly
         else:
             if verbose:
                 I_DOTS = I_DOTS % 3
                 dots = '.' * I_DOTS
                 print(f"Waiting for template '{input_template}' to appear{dots}", end="\r")
                 I_DOTS += 1
-            sleep(sleep_cycle)
+
+            # Check elapsed wall time
+            if max_searching_time is not None and (time.time() - start_time) >= max_searching_time:
+                print(f"[INFO] Stopped waiting for template '{input_template}' "
+                      f"after {max_searching_time:.1f} seconds.")
+                return None
 
 
 def load_template(input_template: str, grayscale_mode: bool = True) -> np.ndarray:
@@ -117,13 +128,30 @@ def detect_template(
         exception_if_not_found: bool = False,
         warn_if_not_found: bool = True,
         grayscale_mode: bool = True,
-        wait_for_template_to_appear: bool = True,
+        wait_for_template_to_appear: Union[bool, int] = True,
+        multiple_matches_sorter: Optional[Union[Callable, np.ndarray]] = None,
+        multiple_matches_tolerance: float = 0.03,  # kept for backward-compatibility (unused in this mode)
 ) -> tuple[Optional[float], Optional[float]] | None:
+    """
+    If multiple_matches_sorter is provided:
+      - For each scale, find all (x, y) with score >= minimal_confidence via np.where.
+      - Choose the coordinate within that scale by sorting with multiple_matches_sorter(coord) and taking the first.
+      - Keep the match score at that chosen coordinate.
+      - After scanning all scales, return the coordinate whose (per-scale chosen) score is maximal.
+
+    If multiple_matches_sorter is None:
+      - Original behavior: per scale, take the best via minMaxLoc; keep the global best across scales
+        (with early stop once best_val > minimal_confidence).
+    """
     assert (secondary_template is None and secondary_template_direction is None) or (
-                secondary_template is not None and secondary_template_direction is not None), \
-        "If secondary_template is provided, secondary_template_direction must also be provided."
-    assert exception_if_not_found is False or wait_for_template_to_appear is False, \
+        secondary_template is not None and secondary_template_direction is not None
+    ), "If secondary_template is provided, secondary_template_direction must also be provided."
+    assert exception_if_not_found is False or not bool(wait_for_template_to_appear), \
         "Cannot wait for template to appear if exception_if_not_found is True."
+
+    if isinstance(multiple_matches_sorter, np.ndarray):
+        multiple_matches_sorter_temp = multiple_matches_sorter
+        multiple_matches_sorter = lambda x: - np.array(x) @ multiple_matches_sorter_temp
 
     if secondary_template is not None and secondary_template_direction is not None:
         coordinates = detect_dual_template(
@@ -137,50 +165,98 @@ def detect_template(
             grayscale_mode=grayscale_mode,
             wait_for_template_to_appear=wait_for_template_to_appear
         )
-        if coordinates is not None:
-            return coordinates
-        else:
-            return None
+        return coordinates if coordinates is not None else None
 
     template_img = load_template(input_template, grayscale_mode=grayscale_mode)
 
     screenshot = ImageGrab.grab()
     screenshot = np.array(screenshot)
-    if grayscale_mode:  # 3
+    if grayscale_mode:
         screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
 
-    best_val = -1
+    best_val = -1.0
+    best_coord_abs: Optional[Tuple[float, float]] = None
+
+    # For original behavior bookkeeping (when sorter is None)
     best_loc = None
     best_w, best_h = 0, 0
 
-    scales = [1.0] + [s for s in np.linspace(0.5, 2.0, 50) if abs(s - 1.0) > 1e-6]
-    for scale in scales:
-        resized_template = cv2.resize(template_img, (0, 0), fx=scale, fy=scale)
-        tH, tW = resized_template.shape[:2]
+    scales = [1.0] + [s for s in np.linspace(0.5, 2.0, 5) if abs(s - 1.0) > 1e-6]
 
-        if tH > screenshot.shape[0] or tW > screenshot.shape[1]:
-            continue
+    if multiple_matches_sorter is None:
+        # Original "single best per scale" approach (fast path with possible early exit)
+        for scale in scales:
+            resized_template = cv2.resize(template_img, (0, 0), fx=scale, fy=scale)
+            tH, tW = resized_template.shape[:2]
 
-        result = cv2.matchTemplate(screenshot, resized_template, cv2.TM_CCOEFF_NORMED)
-        _, max_val, _, max_loc = cv2.minMaxLoc(result)
+            if tH > screenshot.shape[0] or tW > screenshot.shape[1]:
+                continue
 
-        if max_val > best_val:
-            best_val = max_val
-            best_loc = max_loc
-            best_w, best_h = tW, tH
+            result = cv2.matchTemplate(screenshot, resized_template, cv2.TM_CCOEFF_NORMED)
+            _, max_val, _, max_loc = cv2.minMaxLoc(result)
+
+            if max_val > best_val:
+                best_val = max_val
+                best_loc = max_loc
+                best_w, best_h = tW, tH
+                if best_val > minimal_confidence:
+                    # Early exit as before
+                    break
+
+        if best_loc is not None and best_val > minimal_confidence:
+            x, y = best_loc
+            px, py = get_relative_point_position(x, y, best_w, best_h, relative_position)
+            return px, py
+
+    else:
+        # New behavior: per-scale, consider ALL matches >= threshold; pick per-scale coordinate via sorter
+        for scale in scales:
+            resized_template = cv2.resize(template_img, (0, 0), fx=scale, fy=scale)
+            tH, tW = resized_template.shape[:2]
+
+            if tH > screenshot.shape[0] or tW > screenshot.shape[1]:
+                continue
+
+            result = cv2.matchTemplate(screenshot, resized_template, cv2.TM_CCOEFF_NORMED)
+            loc = np.where((result >= minimal_confidence) & (result >= np.max(result) - multiple_matches_tolerance))
+            ys, xs = loc[0], loc[1]
+            if xs.size == 0:
+                continue
+
+            # Build coordinate list with absolute-click positions and their scores
+            coords_with_scores = []
+            for (x, y) in zip(xs, ys):
+                # (x, y) is top-left in result
+                px, py = get_relative_point_position(x, y, tW, tH, relative_position)
+                score = float(result[y, x])
+                coords_with_scores.append(((px, py), score))
+
+            # Choose best coord within this scale by sorter applied to coordinates only
+            coords_with_scores.sort(key=lambda item: multiple_matches_sorter(item[0]))
+            chosen_coord, chosen_score = coords_with_scores[0]
+
+            # Keep global best by score, across scales
+            if chosen_score > best_val:
+                best_val = chosen_score
+                best_coord_abs = chosen_coord
+
             if best_val > minimal_confidence:
                 break
 
-    if best_loc and best_val > minimal_confidence:  # If the template was found:
-        x, y = best_loc
-        px, py = get_relative_point_position(x, y, best_w, best_h, relative_position)
-        abs_x, abs_y = px, py  # px + crop_offset_x, py + crop_offset_y
-        return abs_x, abs_y
-    else:
-        if wait_for_template_to_appear:
-            print(f"[INFO] Waiting for template: {input_template} to appear...")
-            wait_for_template(input_template=input_template)
-            # After waiting is done:
+        if best_coord_abs is not None and best_val > minimal_confidence:
+            return best_coord_abs
+
+    # Not found
+    if wait_for_template_to_appear:
+        print(f"[INFO] Waiting for template: {input_template} to appear...")
+        if isinstance(wait_for_template_to_appear, int):
+            template_position = wait_for_template(input_template=input_template,
+                                                  max_searching_time=wait_for_template_to_appear)
+        else:
+            template_position = wait_for_template(input_template=input_template)
+        if template_position is None:
+            return None
+        else:
             return detect_template(
                 input_template=input_template,
                 secondary_template=secondary_template,
@@ -190,15 +266,17 @@ def detect_template(
                 exception_if_not_found=exception_if_not_found,
                 warn_if_not_found=warn_if_not_found,
                 grayscale_mode=grayscale_mode,
-                wait_for_template_to_appear=False
-                )
-        else:
-            failure_text = f"[ERROR] Failed to fit template: {input_template}"
-            if exception_if_not_found:
-                raise RuntimeError(failure_text)
-            elif warn_if_not_found:
-                warn(failure_text)
-                return None
+                wait_for_template_to_appear=False,
+                multiple_matches_sorter=multiple_matches_sorter,
+                multiple_matches_tolerance=multiple_matches_tolerance
+            )
+    else:
+        failure_text = f"[ERROR] Failed to fit template: {input_template}"
+        if exception_if_not_found:
+            raise RuntimeError(failure_text)
+        elif warn_if_not_found:
+            warn(failure_text)
+        return None
 
 
 def detect_template_and_act(
@@ -217,8 +295,9 @@ def detect_template_and_act(
         override_coordinates: Optional[tuple[float, float]] = None,
         grayscale_mode: bool = True,
         wait_for_template_to_appear: bool = True,
+        multiple_matches_sorter: Optional[Union[Callable, np.ndarray]] = None,
+        multiple_matches_tolerance: float = 0.03,
 ) -> tuple[float, float] | None:
-
     assert value_to_paste is None or click is True, "Cannot paste text without clicking the target location first."
     assert input_template is not None or override_coordinates is not None, \
         "Either input_template or override_coordinates must be provided."
@@ -234,7 +313,9 @@ def detect_template_and_act(
                                       exception_if_not_found=exception_if_not_found,
                                       warn_if_not_found=warn_if_not_found,
                                       grayscale_mode=grayscale_mode,
-                                      wait_for_template_to_appear=wait_for_template_to_appear)
+                                      wait_for_template_to_appear=wait_for_template_to_appear,
+                                      multiple_matches_sorter=multiple_matches_sorter,
+                                      multiple_matches_tolerance=multiple_matches_tolerance)
     else:
         coordinates = override_coordinates
     if coordinates is not None:
@@ -256,7 +337,8 @@ def _expand_interval(lo: int, hi: int, needed: int, limit: int) -> tuple[int, in
     If one side hits a boundary, reassign the remainder to the other side.
     Returns new (lo, hi) with 0 <= lo < hi <= limit (unless needed==0).
     """
-    lo = int(lo); hi = int(hi)
+    lo = int(lo);
+    hi = int(hi)
     have = hi - lo
     if needed <= have:
         return lo, hi
@@ -279,7 +361,7 @@ def _expand_interval(lo: int, hi: int, needed: int, limit: int) -> tuple[int, in
     # Reassign leftover growth if one side was clamped
     if remaining > 0:
         # Try the side(s) that still have capacity
-        cap_left = new_lo - 0          # how much more we can move left
+        cap_left = new_lo - 0  # how much more we can move left
         take_left = min(remaining, cap_left)
         new_lo -= take_left
         remaining -= take_left
@@ -559,6 +641,4 @@ def record_gui_template():
 
 
 if __name__ == "__main__":
-    detect_dual_template(template_a='delete_me_a.png', template_b='delete_me_b.png', direction='right',)
-
-
+    detect_dual_template(template_a='delete_me_a.png', template_b='delete_me_b.png', direction='right', )

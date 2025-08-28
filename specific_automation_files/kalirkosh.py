@@ -87,13 +87,13 @@ def remove_vat(price):
     return np.ceil(price / 1.18 * 100) / 100 if isinstance(price, (int, float)) else None
 
 
-def parse_scientific_table(df: pd.DataFrame, thorlabs_format: bool = False, scientific: bool = True) -> pd.DataFrame:
+def parse_scientific_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, scientific: bool = True) -> pd.DataFrame:
     # Check the file extension and load the file
 
     if scientific:
         # Define the target columns in lowercase
         required_columns = ['id', 'description', 'quantity', 'price', 'discount']
-        if thorlabs_format:
+        if rosh_electroptics_format:
             # remove the last line of the dataframe if it's Ln value is nan:
             if df.iloc[-1]['Quantity'] == 'TOTAL':
                 df = df.iloc[:-1]
@@ -117,6 +117,7 @@ def parse_scientific_table(df: pd.DataFrame, thorlabs_format: bool = False, scie
         df['price'] = df['price'].apply(clean_number)
         df['id'] = df['id'].apply(clean_text)
         df['description'] = df['description'].apply(clean_text)
+        df['description'].fillna('.', inplace=True)
 
         # Select and return only the required columns
         df = df.loc[:df.last_valid_index()]
@@ -193,7 +194,6 @@ continue_keyword = input(
 if continue_keyword.lower() == 'e':
     exit()
 
-minimize_current_window()
 
 # %% Upload quote:
 nispachim_position = detect_template_and_act('nispachim', click=True, sleep_after_action=SHORT_SLEEP_TIME)
@@ -208,7 +208,7 @@ continue_keyword = input(
     "Choose the quote from the list, go back here, and press enter to continue or s to stop and exit\n")
 if continue_keyword.lower() == 'e':
     exit()
-minimize_current_window()
+
 ishur_upload_position = detect_template_and_act('ishur - upload', relative_position=(0.8, 0.5),
                                                 minimal_confidence=0.97, click=True, wait_for_template_to_appear=False)
 # %% Add Note
@@ -250,22 +250,6 @@ winsound.Beep(880, 500)
 
 # %%
 
-# pritim_position = detect_template_and_act('pritim', click=True, sleep_after_action=MEDIUM_SLEEP_TIME)
-
-makat_position = detect_template('makat_sapak', relative_position=(-0.945, 0.542))
-
-hanacha_position = detect_template('hanacha', relative_position=(-0.5, 0.5))
-
-teur_position = detect_template('teur', relative_position=(-1, 0.5))
-
-kamut_position = detect_template('kamut', relative_position=(-1, 0.5))
-
-mechir_bematbea_position = detect_template('mechir bematbea', relative_position=(-1, 0.5))
-
-adken_shura_position = detect_template('adken shura')
-
-# %%
-
 category_1_position = detect_template_and_act('categories', relative_position=(-0.4, 0.85), click=True,
                                               sleep_after_action=SHORT_SLEEP_TIME)
 if scientific:
@@ -295,6 +279,13 @@ if not scientific:
 
 def paste_row_to_fields(row):
     """Pastes values from a DataFrame row into designated screen fields."""
+
+    teur_position = detect_template('teur', relative_position=(-1, 0.5))
+
+    kamut_position = detect_template('kamut', relative_position=(-1, 0.5))
+
+    mechir_bematbea_position = detect_template('mechir bematbea', relative_position=(-1, 0.5))
+
     print(row)
     pyautogui.click(teur_position)
     sleep(SHORT_SLEEP_TIME)
@@ -307,10 +298,8 @@ def paste_row_to_fields(row):
     paste_value(row['price'], mechir_bematbea_position)
 
     if scientific:
-        paste_value(row['id'], makat_position)
-        sleep(SHORT_SLEEP_TIME)
-        paste_value(row['discount'], hanacha_position)
-        sleep(SHORT_SLEEP_TIME)
+        detect_template_and_act('makat_sapak', relative_position=(-0.945, 0.542), value_to_paste=row['id'], sleep_after_action=SHORT_SLEEP_TIME)
+        detect_template_and_act('hanacha', relative_position=(-0.5, 0.5), value_to_paste=row['discount'], sleep_after_action=SHORT_SLEEP_TIME)
         pyautogui.click(category_1_position)
         sleep(SHORT_SLEEP_TIME)
         pyautogui.click(category_1_choice_position)
@@ -319,7 +308,7 @@ def paste_row_to_fields(row):
         sleep(SHORT_SLEEP_TIME)
         pyautogui.click(category_2_choice_position)
         sleep(SHORT_SLEEP_TIME)
-        pyautogui.click(adken_shura_position)
+        detect_template_and_act('adken shura', click=True)
     else:
         pyautogui.click(category_1_position)
         sleep(SHORT_SLEEP_TIME)
@@ -333,24 +322,30 @@ def paste_row_to_fields(row):
         sleep(SHORT_SLEEP_TIME)
         pyautogui.click(category_3_choice_position)
         sleep(SHORT_SLEEP_TIME)
-        pyautogui.click(adken_shura_position)
+        detect_template_and_act('adken shura', click=True)
         sleep(SHORT_SLEEP_TIME)
         pyautogui.press('enter')
         sleep(SHORT_SLEEP_TIME)
+    tafnit_warning = detect_template('kalirkosh - OK warning after update row', wait_for_template_to_appear=False, warn_if_not_found=False, exception_if_not_found=False)
+    if tafnit_warning is not None:
+        input("there is a problem, fix it and press here enter to continue")
+        detect_template_and_act('kalirkosh - OK warning after update row', wait_for_template_to_appear=False,
+                        warn_if_not_found=False, exception_if_not_found=False, click=True)
+
 
 winsound.Beep(880, 500)
-thorlabs_format = False
+rosh_electroptics_format = False
 if scientific:
     winsound.Beep(880, 500)
-    thorlabs_format = input("Copy the path to the csv containing the items to be ordered to your clipboard.\n"
+    rosh_electroptics_format = input("Copy the path to the csv containing the items to be ordered to your clipboard.\n"
                             "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letters does not matter)\n"
                             "There is no need to remove strings from the values. that is, No need to change '10 %' to 10 and '250.00 USD' to 250.\n"
                             "Notice that in Excel you can choose Data -> Get Data -> From file -> From PDF to automaticall import tables from a PDF file to you excel.\n"
                             "After copying, come back here and press here 'y' if it is Thorlabs format and 'n' if not (without quotes), and then press enter to continue")
-    if thorlabs_format.lower() == 'y':
-        thorlabs_format = True
-    elif thorlabs_format.lower() == 'n':
-        thorlabs_format = False
+    if rosh_electroptics_format.lower() == 'y':
+        rosh_electroptics_format = True
+    elif rosh_electroptics_format.lower() == 'n':
+        rosh_electroptics_format = False
         input(
             )
     else:
@@ -368,7 +363,7 @@ items_csv = wait_for_path_from_clipboard(filetype='csv')
 df = load_tabular_data(items_csv)
 
 if scientific:
-    df = parse_scientific_table(df, thorlabs_format=thorlabs_format)
+    df = parse_scientific_table(df, rosh_electroptics_format=rosh_electroptics_format)
 else:
     df.columns = df.columns.str.lower()
 
