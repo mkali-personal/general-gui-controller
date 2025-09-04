@@ -571,7 +571,7 @@ def detect_dual_template(
     return abs_x, abs_y
 
 
-def paste_value(value: Optional[str], location, click=True, delete_existing=True):
+def paste_value(value: Optional[str], location=None, click=True, delete_existing=True):
     """Pastes a given value at a specified screen location."""
     # Copy the value to clipboard
     if value is None:
@@ -633,9 +633,9 @@ def record_gui_template():
     print(f"Saved cropped image to: {output_path}")
 
     if relative_x is None or relative_y is None:
-        templates_usage_syntax = f'detect_template_and_act(r"{filename}.png", sleep_before_detection=0, click=True)'
+        templates_usage_syntax = f'detect_template_and_act(r"{filename}.png")'
     else:
-        templates_usage_syntax = f'detect_template_and_act(r"{filename}.png", relative_position=({relative_x:.3f}, {relative_y:.3f}), sleep_before_detection=0, click=True)'
+        templates_usage_syntax = f'detect_template_and_act(r"{filename}.png", relative_position=({relative_x:.3f}, {relative_y:.3f}))'
     pyperclip.copy(templates_usage_syntax)
     print(templates_usage_syntax)
 
