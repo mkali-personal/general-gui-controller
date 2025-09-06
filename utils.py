@@ -1,0 +1,76 @@
+import os
+import time
+from typing import Optional
+
+import cv2
+import pyperclip
+
+
+def wait_for_path_from_clipboard(filetype: Optional[str] = None, poll_interval=0.5, verbose=True,
+                                 instructions_message=None):
+    if instructions_message is not None:
+        print(instructions_message + '\n')
+
+    I = 0
+    while True:
+        clipboard = pyperclip.paste().strip().strip('"')  # Strip whitespace and quotes
+
+        if os.path.isfile(clipboard) or os.path.isdir(clipboard):
+            filetype_lower = filetype.lower() if filetype else None
+
+            if filetype_lower in ['video', 'media']:
+                # Try to open as a video
+                cap = cv2.VideoCapture(clipboard)
+                if cap.isOpened():
+                    cap.release()
+                    if verbose:
+                        print(f"✔ Detected valid video path: {clipboard}")
+                    return clipboard
+                cap.release()
+
+            if filetype_lower in ['image', 'media']:
+                # Try to read as an image
+                img = cv2.imread(clipboard)
+                if img is not None:
+                    if verbose:
+                        print(f"✔ Detected valid image path: {clipboard}")
+                    return clipboard
+
+            if filetype_lower == 'excel':
+                if clipboard.endswith('.xlsx') or clipboard.endswith('.xls'):
+                    if verbose:
+                        print(f"✔ Detected valid CSV path: {clipboard}")
+                    return clipboard
+
+            if filetype_lower in ['table', 'tabular']:
+                if clipboard.endswith('.csv') or clipboard.endswith('.xlsx') or clipboard.endswith('.xls'):
+                    if verbose:
+                        print(f"✔ Detected valid table path: {clipboard}")
+                    return clipboard
+
+            if filetype_lower in ['folder', 'directory', 'dir']:
+                if os.path.isdir(clipboard):
+                    if verbose:
+                        print(f"✔ Detected valid directory path: {clipboard}")
+                    return clipboard
+
+            if filetype is not None:
+                if clipboard.endswith(f'.{filetype_lower}'):
+                    if verbose:
+                        print(f"✔ Detected valid CSV path: {clipboard}")
+                    return clipboard
+
+            if filetype is None:
+                # No specific filetype validation
+                if verbose:
+                    print(f"✔ Detected path: {clipboard}")
+                return clipboard
+
+        if verbose:
+            number_of_dots = I % 3 + 1
+            dots = '.' * number_of_dots
+            print(f"Waiting for path to be copied{dots}", end="\r")
+            I += 1
+        time.sleep(poll_interval)
+
+wait_for_path_from_clipboard(filetype='table', instructions_message="Please copy a video or image file path to the clipboard.")
