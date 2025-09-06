@@ -4,7 +4,7 @@ import cv2
 import pyperclip
 import numpy as np
 import os
-from typing import Optional, Tuple, Callable, Union
+from typing import Optional, Tuple, Callable, Union, List
 from PIL import ImageGrab
 import pyautogui
 from pynput import keyboard
@@ -18,6 +18,15 @@ notification.notify(
 )
 
 GENERAL_GUI_CONTROLLER_TEMPLATES_PATH = r"utilities\automations\ggc-templates"
+
+
+def take_screenshot(screenshot: Optional[np.ndarray] = None, grayscale_mode: bool = True) -> np.ndarray:
+    if screenshot is None:
+        screenshot = ImageGrab.grab()
+        screenshot = np.array(screenshot)
+        if grayscale_mode:  # I assume if screenshot is provided, it's already in the desired format
+            screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
+    return screenshot
 
 
 def minimize_current_window():
@@ -79,11 +88,9 @@ def wait_for_template(input_template: str,
     I_DOTS = 0
     start_time = time.time()
 
-    print(f"Waiting for template '{input_template}' to appear", end="\r")
+    print(f"Waiting for template '{input_template}' to appear")
     while hold_script:
-        button_position = detect_template(input_template,
-                                          exception_if_not_found=False,
-                                          warn_if_not_found=False,)
+        button_position = detect_template(input_template, exception_if_not_found=False, warn_if_not_found=False)
         if button_position is not None:
             print(f"Found template: {input_template}")
             hold_script = False
@@ -102,36 +109,77 @@ def wait_for_template(input_template: str,
                 return None
 
 
-def load_template(input_template: str, grayscale_mode: bool = True) -> np.ndarray:
-    template_path = os.path.join(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH, input_template)
-    base_name, ext = os.path.splitext(template_path)
-    if ext == "":
-        template_path = template_path + '.png'
+def load_templates_list(template_pairs: List[Tuple], grayscale_mode: bool = True, return_all: bool = True) -> list[np.ndarray]:
+    output_list = []
+    for template_pair in template_pairs:
+        sublist_1 = load_template(template_pair[0], grayscale_mode, return_all)
+        sublist_2 = load_template(template_pair[1], grayscale_mode, return_all)
+        if isinstance(sublist_1, list) and isinstance(sublist_2, list):
+            if len(sublist_1) != len(sublist_2):
+                raise ValueError("If both input_templates and secondary_templates are lists, they must have the same length.")
+            output_list.extend(list(zip(sublist_1, sublist_2)))
+        elif isinstance(sublist_1, list):
+            temp_list = [(s_1, sublist_2) for s_1 in sublist_1]
+            output_list.extend(temp_list)
+        elif isinstance(sublist_2, list):
+            temp_list = [(sublist_1, s_2) for s_2 in sublist_2]
+            output_list.extend(temp_list)
+        else:
+            output_list.append((sublist_1, sublist_2))
+    return output_list
 
-    template_img = cv2.imread(template_path, cv2.IMREAD_COLOR)
-    if template_img is None:
-        raise FileNotFoundError(
-            f"File: {template_path} not found, current working directory: {os.getcwd()} (should be os-lab)")
 
-    if grayscale_mode:
-        template_img = cv2.cvtColor(template_img, cv2.COLOR_BGR2GRAY)
+def load_template(template: Union[str, np.ndarray], grayscale_mode: bool = True, return_all: bool = True) -> Union[
+    np.ndarray, list[np.ndarray]]:
+    if isinstance(template, str):
+        if return_all:
+            templates = []
+            for fname in sorted(os.listdir(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH)):
+                if fname.startswith(template):
+                    template_path = os.path.join(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH, fname)
+                    arr = cv2.imread(template_path, cv2.IMREAD_COLOR)
+                    if arr is None:
+                        raise FileNotFoundError(
+                            f"File: {template_path} not found, current working directory: {os.getcwd()} (should be os-lab)")
+                    if grayscale_mode:
+                        arr = cv2.cvtColor(arr, cv2.COLOR_BGR2GRAY)
+                    templates.append(arr)
+            if len(templates) == 1:
+                templates = templates[0]
+            if len(templates) == 0:
+                raise FileNotFoundError(
+                    f"No files found starting with: {template} in {GENERAL_GUI_CONTROLLER_TEMPLATES_PATH}, current working directory: {os.getcwd()} (should be os-lab)")
+            return templates
+        else:
+            template_path = os.path.join(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH, template)
+            base_name, ext = os.path.splitext(template_path)
+            if ext == "":
+                template_path = template_path + '.png'
 
-    return template_img
+            template = cv2.imread(template_path, cv2.IMREAD_COLOR)
+            if template is None:
+                raise FileNotFoundError(
+                    f"File: {template_path} not found, current working directory: {os.getcwd()} (should be os-lab)")
+
+        if grayscale_mode:  # assume if template is provided as array, it's already in desired format
+            template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+
+    return template
 
 
-def detect_template(
-        input_template: str,
-        secondary_template: Optional[str] = None,
+def detect_single_template(
+        template: Union[str, np.ndarray],
+        secondary_template: Optional[Union[str, np.ndarray]] = None,
         secondary_template_direction: Optional[str] = None,
         relative_position: Optional[Tuple[float, float]] = None,
         minimal_confidence: float = 0.8,
         exception_if_not_found: bool = False,
         warn_if_not_found: bool = True,
+        screenshot: Optional[np.ndarray] = None,
         grayscale_mode: bool = True,
-        wait_for_template_to_appear: Union[bool, int] = True,
         multiple_matches_sorter: Optional[Union[Callable, np.ndarray]] = None,
-        multiple_matches_tolerance: float = 0.03,  # kept for backward-compatibility (unused in this mode)
-) -> tuple[Optional[float], Optional[float]] | None:
+        multiple_matches_tolerance: float = 0.03,
+) -> tuple[float, float] | None:
     """
     If multiple_matches_sorter is provided:
       - For each scale, find all (x, y) with score >= minimal_confidence via np.where.
@@ -144,139 +192,145 @@ def detect_template(
         (with early stop once best_val > minimal_confidence).
     """
     assert (secondary_template is None and secondary_template_direction is None) or (
-        secondary_template is not None and secondary_template_direction is not None
+            secondary_template is not None and secondary_template_direction is not None
     ), "If secondary_template is provided, secondary_template_direction must also be provided."
-    assert exception_if_not_found is False or not bool(wait_for_template_to_appear), \
-        "Cannot wait for template to appear if exception_if_not_found is True."
+    if secondary_template is not None and multiple_matches_sorter is not None:
+        warn("multiple_matches_sorter is ran before searching for the nearby secondary_template")
 
     if isinstance(multiple_matches_sorter, np.ndarray):
-        multiple_matches_sorter_temp = multiple_matches_sorter
+        multiple_matches_sorter_temp = np.array([multiple_matches_sorter[0], -multiple_matches_sorter[1]])
         multiple_matches_sorter = lambda x: - np.array(x) @ multiple_matches_sorter_temp
 
     if secondary_template is not None and secondary_template_direction is not None:
-        coordinates = detect_dual_template(
-            template_a=input_template,
-            template_b=secondary_template,
-            direction=secondary_template_direction,
-            relative_position=relative_position,
-            minimal_confidence=minimal_confidence,
-            exception_if_not_found=exception_if_not_found,
-            warn_if_not_found=warn_if_not_found,
-            grayscale_mode=grayscale_mode,
-            wait_for_template_to_appear=wait_for_template_to_appear
-        )
-        return coordinates if coordinates is not None else None
+        coordinates = detect_complex_template(template_a=template, template_b=secondary_template,
+                                              direction=secondary_template_direction,
+                                              relative_position=relative_position,
+                                              minimal_confidence=minimal_confidence,
+                                              exception_if_not_found=exception_if_not_found,
+                                              warn_if_not_found=warn_if_not_found,
+                                              screenshot=screenshot,
+                                              grayscale_mode=grayscale_mode,
+                                              multiple_matches_sorter=multiple_matches_sorter,
+                                              multiple_matches_tolerance=multiple_matches_tolerance)
+        return coordinates
 
-    template_img = load_template(input_template, grayscale_mode=grayscale_mode)
+    if isinstance(template, str):
+        template = load_template(template, grayscale_mode=grayscale_mode)
 
-    screenshot = ImageGrab.grab()
-    screenshot = np.array(screenshot)
-    if grayscale_mode:
-        screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
+    screenshot = take_screenshot(screenshot=screenshot, grayscale_mode=grayscale_mode)
 
-    best_val = -1.0
-    best_coord_abs: Optional[Tuple[float, float]] = None
+    tH, tW = template.shape[:2]
 
-    # For original behavior bookkeeping (when sorter is None)
-    best_loc = None
-    best_w, best_h = 0, 0
+    if tH > screenshot.shape[0] or tW > screenshot.shape[1]:
+        return None
 
-    scales = [1.0] + [s for s in np.linspace(0.5, 2.0, 5) if abs(s - 1.0) > 1e-6]
+    result = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
+    max_val = np.max(result)
+    if max_val < minimal_confidence:
+        return None
 
     if multiple_matches_sorter is None:
-        # Original "single best per scale" approach (fast path with possible early exit)
-        for scale in scales:
-            resized_template = cv2.resize(template_img, (0, 0), fx=scale, fy=scale)
-            tH, tW = resized_template.shape[:2]
-
-            if tH > screenshot.shape[0] or tW > screenshot.shape[1]:
-                continue
-
-            result = cv2.matchTemplate(screenshot, resized_template, cv2.TM_CCOEFF_NORMED)
-            _, max_val, _, max_loc = cv2.minMaxLoc(result)
-
-            if max_val > best_val:
-                best_val = max_val
-                best_loc = max_loc
-                best_w, best_h = tW, tH
-                if best_val > minimal_confidence:
-                    # Early exit as before
-                    break
-
-        if best_loc is not None and best_val > minimal_confidence:
-            x, y = best_loc
-            px, py = get_relative_point_position(x, y, best_w, best_h, relative_position)
-            return px, py
+        _, max_val, _, max_loc = cv2.minMaxLoc(result)
+        x, y = max_loc
+        px, py = get_relative_point_position(x, y, tW, tH, relative_position)
+        return px, py
 
     else:
-        # New behavior: per-scale, consider ALL matches >= threshold; pick per-scale coordinate via sorter
+        loc = np.where((result >= minimal_confidence) & (result >= max_val - multiple_matches_tolerance))
+        ys, xs = loc[0], loc[1]
+        assert len(xs) > 0, "Internal error: no coordinates found despite max_val >= minimal_confidence."
+
+        # Build coordinate list with absolute-click positions and their scores
+        coords_with_scores = []
+        for (x, y) in zip(xs, ys):
+            # (x, y) is top-left in result
+            px, py = get_relative_point_position(x, y, tW, tH, relative_position)
+            score = float(result[y, x])
+            coords_with_scores.append(((px, py), score))
+
+        # Choose best coord within this scale by sorter applied to coordinates only
+        coords_with_scores.sort(key=lambda item: multiple_matches_sorter(item[0]))
+        max_loc, max_val = coords_with_scores[0]
+
+        return max_loc[0], max_loc[1]
+
+
+def detect_template(template: Union[str, list[str]],
+                    secondary_template: Optional[Union[str, list[str]]] = None,
+                    secondary_template_direction: Optional[str] = None,
+                    relative_position: Optional[Tuple[float, float]] = None,
+                    minimal_confidence: float = 0.8,
+                    exception_if_not_found: bool = False,
+                    warn_if_not_found: bool = True,
+                    grayscale_mode: bool = True,
+                    max_waiting_time_seconds: float = np.inf,
+                    multiple_matches_sorter: Optional[Union[Callable, np.ndarray]] = None,
+                    multiple_matches_tolerance: float = 0.03,
+                    all_files_name_matching: bool = True):
+    assert not (isinstance(template, list) and isinstance(secondary_template, list) and len(template) != len(
+        secondary_template)), \
+        "If both input_templates and secondary_templates are lists, they must have the same length."
+    assert exception_if_not_found is False or not bool(max_waiting_time_seconds), \
+        "Cannot wait for template to appear if exception_if_not_found is True."
+    if isinstance(template, list) and not isinstance(secondary_template, list):
+        secondary_template = [secondary_template] * len(template)
+    if not isinstance(template, list) and isinstance(secondary_template, list):
+        template = [template] * len(secondary_template)
+    if not isinstance(template, list):
+        template = [template]
+    if not isinstance(secondary_template, list):
+        secondary_template = [secondary_template]
+
+    template_pairs = list(zip(template, secondary_template))
+
+    template_pairs = load_templates_list(template_pairs,
+                                         grayscale_mode=grayscale_mode,
+                                         return_all=all_files_name_matching)
+
+
+    scales = list(np.linspace(0.8, 1.2, num=5))
+    scales.sort(key=lambda s: abs(s - 1.0))  # prioritize scales closer to 1.0
+    start_time = time.time()
+    retry_flag = True
+    I_DOTS = 0
+    while retry_flag:
+        if I_DOTS > 0:
+            dots = '.' * (I_DOTS % 4)
+            print(f"Waiting for template '{template}' to appear{dots}")
+        screenshot = take_screenshot(grayscale_mode=grayscale_mode)
         for scale in scales:
-            resized_template = cv2.resize(template_img, (0, 0), fx=scale, fy=scale)
-            tH, tW = resized_template.shape[:2]
-
-            if tH > screenshot.shape[0] or tW > screenshot.shape[1]:
-                continue
-
-            result = cv2.matchTemplate(screenshot, resized_template, cv2.TM_CCOEFF_NORMED)
-            loc = np.where((result >= minimal_confidence) & (result >= np.max(result) - multiple_matches_tolerance))
-            ys, xs = loc[0], loc[1]
-            if xs.size == 0:
-                continue
-
-            # Build coordinate list with absolute-click positions and their scores
-            coords_with_scores = []
-            for (x, y) in zip(xs, ys):
-                # (x, y) is top-left in result
-                px, py = get_relative_point_position(x, y, tW, tH, relative_position)
-                score = float(result[y, x])
-                coords_with_scores.append(((px, py), score))
-
-            # Choose best coord within this scale by sorter applied to coordinates only
-            coords_with_scores.sort(key=lambda item: multiple_matches_sorter(item[0]))
-            chosen_coord, chosen_score = coords_with_scores[0]
-
-            # Keep global best by score, across scales
-            if chosen_score > best_val:
-                best_val = chosen_score
-                best_coord_abs = chosen_coord
-
-            if best_val > minimal_confidence:
-                break
-
-        if best_coord_abs is not None and best_val > minimal_confidence:
-            return best_coord_abs
-
-    # Not found
-    if wait_for_template_to_appear:
-        print(f"[INFO] Waiting for template: {input_template} to appear...")
-        if isinstance(wait_for_template_to_appear, int):
-            template_position = wait_for_template(input_template=input_template,
-                                                  max_searching_time=wait_for_template_to_appear)
+            for (template_1, template_2) in template_pairs:
+                if scale != 1:
+                    template_1 = cv2.resize(template_1, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
+                    if template_2 is not None:
+                        template_2 = cv2.resize(template_1, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
+                detection_results = detect_single_template(
+                    template=template_1,
+                    secondary_template=template_2,
+                    secondary_template_direction=secondary_template_direction,
+                    relative_position=relative_position,
+                    minimal_confidence=minimal_confidence,
+                    exception_if_not_found=False,
+                    warn_if_not_found=False,
+                    screenshot=screenshot,
+                    grayscale_mode=False,  # already grayscale if needed
+                    multiple_matches_sorter=multiple_matches_sorter,
+                    multiple_matches_tolerance=multiple_matches_tolerance
+                )
+                if detection_results is not None:
+                    print(f"\nFound template '{template}'")
+                    return detection_results[0], detection_results[1]  # x, y
+        if max_waiting_time_seconds == 0 or (time.time() - start_time) > max_waiting_time_seconds:
+            retry_flag = False
         else:
-            template_position = wait_for_template(input_template=input_template)
-        if template_position is None:
-            return None
-        else:
-            return detect_template(
-                input_template=input_template,
-                secondary_template=secondary_template,
-                secondary_template_direction=secondary_template_direction,
-                relative_position=relative_position,
-                minimal_confidence=minimal_confidence,
-                exception_if_not_found=exception_if_not_found,
-                warn_if_not_found=warn_if_not_found,
-                grayscale_mode=grayscale_mode,
-                wait_for_template_to_appear=False,
-                multiple_matches_sorter=multiple_matches_sorter,
-                multiple_matches_tolerance=multiple_matches_tolerance
-            )
-    else:
-        failure_text = f"[ERROR] Failed to fit template: {input_template}"
-        if exception_if_not_found:
-            raise RuntimeError(failure_text)
-        elif warn_if_not_found:
-            warn(failure_text)
-        return None
+            I_DOTS += 1
+
+    failure_text = f"[ERROR] Failed to fit template: {template}"
+    if exception_if_not_found:
+        raise RuntimeError(failure_text)
+    elif warn_if_not_found:
+        warn(failure_text)
+    return None
 
 
 def detect_template_and_act(
@@ -294,7 +348,7 @@ def detect_template_and_act(
         value_to_paste=None,
         override_coordinates: Optional[tuple[float, float]] = None,
         grayscale_mode: bool = True,
-        wait_for_template_to_appear: bool = True,
+        max_waiting_time_seconds: float = np.inf,
         multiple_matches_sorter: Optional[Union[Callable, np.ndarray]] = None,
         multiple_matches_tolerance: float = 0.03,
 ) -> tuple[float, float] | None:
@@ -305,15 +359,12 @@ def detect_template_and_act(
     if sleep_before_detection is not None:
         sleep(sleep_before_detection)
     if override_coordinates is None:
-        coordinates = detect_template(input_template=input_template,
-                                      secondary_template=secondary_template,
+        coordinates = detect_template(template=input_template, secondary_template=secondary_template,
                                       secondary_template_direction=secondary_template_direction,
-                                      relative_position=relative_position,
-                                      minimal_confidence=minimal_confidence,
+                                      relative_position=relative_position, minimal_confidence=minimal_confidence,
                                       exception_if_not_found=exception_if_not_found,
-                                      warn_if_not_found=warn_if_not_found,
-                                      grayscale_mode=grayscale_mode,
-                                      wait_for_template_to_appear=wait_for_template_to_appear,
+                                      warn_if_not_found=warn_if_not_found, grayscale_mode=grayscale_mode,
+                                      max_waiting_time_seconds=max_waiting_time_seconds,
                                       multiple_matches_sorter=multiple_matches_sorter,
                                       multiple_matches_tolerance=multiple_matches_tolerance)
     else:
@@ -427,10 +478,12 @@ def _compute_crop_excluding_template_a(x0: int, y0: int, w_a: int, h_a: int,
     return crop_x0, crop_y0, crop_x1, crop_y1
 
 
-def detect_dual_template(
+def detect_complex_template(
         template_a: str,
         template_b: str,
         direction: str,
+        screenshot: Optional[np.ndarray] = None,
+        grayscale_mode: bool = True,
         **kwargs
 ) -> tuple[Optional[float], Optional[float]] | None:
     """
@@ -449,23 +502,19 @@ def detect_dual_template(
     exception_if_not_found = kwargs.get('exception_if_not_found', False)
     warn_if_not_found = kwargs.get('warn_if_not_found', True)
     relative_position_b = kwargs.get('relative_position', None)
-    grayscale_mode = kwargs.get('grayscale_mode', True)
 
     # Load templates
-    template_a_img = load_template(template_a, grayscale_mode=grayscale_mode)
-    template_b_img = load_template(template_b, grayscale_mode=grayscale_mode)
+    template_a = load_template(template_a, grayscale_mode=grayscale_mode)
+    template_b = load_template(template_b, grayscale_mode=grayscale_mode)
 
-    h_a, w_a = template_a_img.shape[:2]
-    h_b, w_b = template_b_img.shape[:2]
+    h_a, w_a = template_a.shape[:2]
+    h_b, w_b = template_b.shape[:2]
 
     # Find template_a top-left once
-    tl = detect_template(
-        input_template=template_a,
-        relative_position=(0.0, 1.0),
-        minimal_confidence=minimal_confidence,
-        exception_if_not_found=exception_if_not_found,
-        warn_if_not_found=warn_if_not_found
-    )
+    tl = detect_single_template(template=template_a, relative_position=(0.0, 1.0),
+                                minimal_confidence=minimal_confidence,
+                                exception_if_not_found=exception_if_not_found, warn_if_not_found=warn_if_not_found,
+                                screenshot=screenshot, grayscale_mode=grayscale_mode)
     if tl is None:
         return None
     x0, y0 = int(round(tl[0])), int(round(tl[1]))
@@ -473,10 +522,8 @@ def detect_dual_template(
     x1, y1 = x0 + w_a, y0 + h_a
 
     # Screenshot (grayscale)
-    screenshot = ImageGrab.grab()
-    screen_rgb = np.array(screenshot)
-    screen_gray = cv2.cvtColor(screen_rgb, cv2.COLOR_RGB2GRAY)
-    H, W = screen_gray.shape[:2]
+    screenshot = take_screenshot(screenshot=screenshot, grayscale_mode=grayscale_mode)
+    H, W = screenshot.shape[:2]
 
     # Determine perpendicular requirement
     needed_perp = h_b if direction in ('left', 'right') else w_b
@@ -495,7 +542,7 @@ def detect_dual_template(
         return None
 
     crop_x0, crop_y0, crop_x1, crop_y1 = crop_bounds
-    crop_gray = screen_gray[crop_y0:crop_y1, crop_x0:crop_x1]
+    crop_gray = screenshot[crop_y0:crop_y1, crop_x0:crop_x1]
     ch, cw = crop_gray.shape[:2]
 
     # If even after widening/tallening the perpendicular span, template_b still cannot fit
@@ -507,7 +554,7 @@ def detect_dual_template(
         return None
 
     # Match template_b within the crop
-    result = cv2.matchTemplate(crop_gray, template_b_img, cv2.TM_CCOEFF_NORMED)
+    result = cv2.matchTemplate(crop_gray, template_b, cv2.TM_CCOEFF_NORMED)
     ys, xs = np.where(result >= minimal_confidence)
 
     if len(xs) == 0:
@@ -641,4 +688,7 @@ def record_gui_template():
 
 
 if __name__ == "__main__":
-    detect_dual_template(template_a='delete_me_a.png', template_b='delete_me_b.png', direction='right', )
+    # record_gui_template()
+    coordinates = detect_template(['delete_me', 'dummy'],
+                                  secondary_template='delete_me_5', secondary_template_direction='right')  # , multiple_matches_sorter=np.array([0, -1.0])
+    print('kaki')

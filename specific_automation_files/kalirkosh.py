@@ -24,7 +24,6 @@ from local_config import PATH_DROPBOX
 
 pyautogui.FAILSAFE = False
 
-record_gui_template()
 # %%
 def load_tabular_data(path: str) -> pd.DataFrame:
     if not os.path.isfile(path):
@@ -171,8 +170,8 @@ pyautogui.write(r"https://tafnit.weizmann.ac.il/MENU1/LOGINNoD.CSP")
 pyautogui.press('enter')
 
 detect_template_and_act(r"tafnit - user_name field.png", relative_position=(0.230, 0.447))
-
-
+input('kaki')
+# %%
 # # # %% Main menu navigation::
 button_position = detect_template_and_act('ivrit - main', relative_position=(0.5, 0.3), click=True,
                                           sleep_after_action=SHORT_SLEEP_TIME)
@@ -189,7 +188,7 @@ else:
     button_position = detect_template_and_act('hazmana kaspit sherutim', click=True)
 
 # Wait for the menu to fully load:
-wait_for_template('ivrit - main')
+detect_template('ivrit - main', max_waiting_time_seconds=np.inf)
 
 
 # %% Supplier selection:
@@ -355,10 +354,11 @@ def paste_row_to_fields(row):
         sleep(SHORT_SLEEP_TIME)
         pyautogui.press('enter')
         sleep(SHORT_SLEEP_TIME)
-    tafnit_warning = detect_template('kalirkosh - OK warning after update row', wait_for_template_to_appear=False, warn_if_not_found=False, exception_if_not_found=False)
+    tafnit_warning = detect_template('kalirkosh - OK warning after update row', exception_if_not_found=False,
+                                     warn_if_not_found=False, max_waiting_time_seconds=0)
     if tafnit_warning is not None:
         input("there is a problem, fix it and press here enter to continue")
-        detect_template_and_act('kalirkosh - OK warning after update row', wait_for_template_to_appear=False,
+        detect_template_and_act('kalirkosh - OK warning after update row', max_waiting_time_seconds=0,
                         warn_if_not_found=False, exception_if_not_found=False, click=True)
 
 
