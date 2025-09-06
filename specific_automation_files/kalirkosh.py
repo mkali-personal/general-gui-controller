@@ -14,16 +14,18 @@ os.chdir(desired_working_dir)
 # Optional: add it to sys.path if you import other modules from there
 if desired_working_dir not in sys.path:
     sys.path.insert(0, desired_working_dir)
-
+# %%
 from utilities.automations.general_gui_controller import *
 import pandas as pd
 import re
 from utilities.media_tools.utils import wait_for_path_from_clipboard
 import winsound
+from local_config import PATH_DROPBOX
 
 pyautogui.FAILSAFE = False
 
-
+record_gui_template()
+# %%
 def load_tabular_data(path: str) -> pd.DataFrame:
     if not os.path.isfile(path):
         raise FileNotFoundError(f"[ERROR] File does not exist: {path}")
@@ -156,9 +158,21 @@ else:
     print("Invalid input. Please enter 's' for scientific or 'f' for food.")
     exit()
 #
+
 SHORT_SLEEP_TIME = 0.2
 MEDIUM_SLEEP_TIME = 1
 LONG_SLEEP_TIME = 4
+
+
+detect_template_and_act('vpn - chrome icon', sleep_after_action=SHORT_SLEEP_TIME)
+pyautogui.hotkey('ctrl', 't')
+
+pyautogui.write(r"https://tafnit.weizmann.ac.il/MENU1/LOGINNoD.CSP")
+pyautogui.press('enter')
+
+detect_template_and_act(r"tafnit - user_name field.png", relative_position=(0.230, 0.447))
+
+
 # # # %% Main menu navigation::
 button_position = detect_template_and_act('ivrit - main', relative_position=(0.5, 0.3), click=True,
                                           sleep_after_action=SHORT_SLEEP_TIME)
@@ -177,8 +191,9 @@ else:
 # Wait for the menu to fully load:
 wait_for_template('ivrit - main')
 
+
 # %% Supplier selection:
-button_position = detect_template_and_act('sapak', click=True, sleep_after_action=SHORT_SLEEP_TIME, sleep_before_detection=1)
+button_position = detect_template_and_act('sapak', click=True, sleep_after_action=SHORT_SLEEP_TIME, sleep_before_detection=3)
 
 wait_for_template('tafnit - pirtei sochen.png')
 
@@ -204,10 +219,24 @@ teur_mismach_position = detect_template_and_act('teur mismach', relative_positio
 haalaa_lasharat_position = detect_template_and_act('haalaa lasharat', click=True)
 bechar_kovets_position = detect_template_and_act('bechar kovets', click=True)
 winsound.Beep(880, 500)
-continue_keyword = input(
-    "Choose the quote from the list, go back here, and press enter to continue or s to stop and exit\n")
-if continue_keyword.lower() == 'e':
-    exit()
+ask_continue = False
+if scientific is False:
+    repetitive_food_order = input("Do you want to use the repetitive food orders excel? (y/n)")
+    repetitive_food_order = repetitive_food_order.lower()
+    if repetitive_food_order:
+        quote_path = os.path.join(PATH_DROPBOX, r"Lab utilities\recurrent food order.xlsx")
+        paste_value(quote_path)
+        sleep(SHORT_SLEEP_TIME)
+        pyautogui.press('enter')
+    else:
+        ask_continue = True
+else:
+    ask_continue = True
+if ask_continue:
+    continue_keyword = input(
+        "Choose the quote from the list, go back here, and press enter to continue or s to stop and exit\n")
+    if continue_keyword.lower() == 'e':
+        exit()
 
 ishur_upload_position = detect_template_and_act('ishur - upload', relative_position=(0.8, 0.5),
                                                 minimal_confidence=0.97, click=True, wait_for_template_to_appear=False)
