@@ -1,9 +1,10 @@
 import os
 import time
 from typing import Optional
-
 import cv2
 import pyperclip
+from PIL import ImageGrab
+from datetime import datetime
 
 
 def wait_for_path_from_clipboard(filetype: Optional[str] = None, poll_interval=0.5, verbose=True,
@@ -72,3 +73,26 @@ def wait_for_path_from_clipboard(filetype: Optional[str] = None, poll_interval=0
             print(f"Waiting for path to be copied{dots}", end="\r")
             I += 1
         time.sleep(poll_interval)
+
+
+def save_clipboard_image_to_desktop():
+    # Get current timestamp
+    now = datetime.now()
+    current_time = now.strftime("%y%m%d%H%M%S")
+
+    # Grab image from clipboard
+    im = ImageGrab.grabclipboard()
+
+    # Get the user's desktop path
+    desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+
+    # Construct full path for saving the image
+    save_path = os.path.join(desktop_path, f"{current_time}.png")
+
+    # Save the image
+    if im:
+        im.save(save_path)
+        print(f"Image saved to: {save_path}")
+    else:
+        print("No image found in clipboard.")
+
