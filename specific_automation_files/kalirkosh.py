@@ -18,7 +18,7 @@ if desired_working_dir not in sys.path:
 from utilities.automations.general_gui_controller import *
 import pandas as pd
 import re
-from utilities.media_tools.utils import wait_for_path_from_clipboard
+from utilities.automations.utils import wait_for_path_from_clipboard
 import winsound
 from local_config import PATH_DROPBOX
 
