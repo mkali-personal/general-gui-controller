@@ -20,9 +20,10 @@ import pandas as pd
 import re
 from utilities.automations.utils import wait_for_path_from_clipboard
 import winsound
-from local_config import PATH_DROPBOX
+from local_config import PATH_DROPBOX, TAFNIT_USER_NAME, TAFNIT_PASSWORD
 
 pyautogui.FAILSAFE = False
+
 
 # %%
 def load_tabular_data(path: str) -> pd.DataFrame:
@@ -140,6 +141,7 @@ def parse_scientific_table(df: pd.DataFrame, rosh_electroptics_format: bool = Fa
         return df
 #
 #
+# record_gui_template()
 winsound.Beep(880, 500)
 input("got to the TAFNIT main window, and make sure it is maximized on your main screen (where the notification is).\n"
       "When you will need to choose supplier or a quote file in Tafnit, the script will wait for you to choose it,\n"
@@ -163,14 +165,24 @@ MEDIUM_SLEEP_TIME = 1
 LONG_SLEEP_TIME = 4
 
 
-detect_template_and_act('vpn - chrome icon', sleep_after_action=SHORT_SLEEP_TIME)
+detect_template_and_act('vpn - chrome icon', sleep_after_action=1)
 pyautogui.hotkey('ctrl', 't')
 
 pyautogui.write(r"https://tafnit.weizmann.ac.il/MENU1/LOGINNoD.CSP")
 pyautogui.press('enter')
+detect_template('tafnit - login screen finished loading',
+                max_waiting_time_seconds=np.inf)
+sleep(2)
+pyautogui.press('tab')
+paste_value(TAFNIT_USER_NAME)
+pyautogui.press('tab')
+paste_value(TAFNIT_PASSWORD)
+pyautogui.press('tab')
+pyautogui.press('tab')
+pyautogui.press('tab')
+pyautogui.press('enter')
+detect_template_and_act('1password - x icon', max_waiting_time_seconds=2, sleep_before_detection=1)
 
-detect_template_and_act(r"tafnit - user_name field.png", relative_position=(0.230, 0.447))
-input('kaki')
 # %%
 # # # %% Main menu navigation::
 button_position = detect_template_and_act('ivrit - main', relative_position=(0.5, 0.3), click=True,
@@ -188,11 +200,11 @@ else:
     button_position = detect_template_and_act('hazmana kaspit sherutim', click=True)
 
 # Wait for the menu to fully load:
-detect_template('ivrit - main', max_waiting_time_seconds=np.inf)
-
+detect_template(['tafnit - drisha lerechesh', 'tafnit - hazmana kaspit sherutim'])
+detect_template('ivrit - main')
 
 # %% Supplier selection:
-button_position = detect_template_and_act('sapak', click=True, sleep_after_action=SHORT_SLEEP_TIME, sleep_before_detection=3)
+button_position = detect_template_and_act('sapak', click=True, sleep_after_action=SHORT_SLEEP_TIME, sleep_before_detection=SHORT_SLEEP_TIME)
 
 wait_for_template('tafnit - pirtei sochen.png')
 

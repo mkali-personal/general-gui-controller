@@ -72,5 +72,3 @@ def wait_for_path_from_clipboard(filetype: Optional[str] = None, poll_interval=0
             print(f"Waiting for path to be copied{dots}", end="\r")
             I += 1
         time.sleep(poll_interval)
-
-wait_for_path_from_clipboard(filetype='table', instructions_message="Please copy a video or image file path to the clipboard.")

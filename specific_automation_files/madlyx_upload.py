@@ -1,8 +1,6 @@
 import os
 import sys
 
-import pyautogui
-
 # Go to the parent of the parent directory
 desired_working_dir = r"C:\Users\michaeka\git-projects\os-lab"
 
@@ -14,12 +12,7 @@ if desired_working_dir not in sys.path:
     sys.path.insert(0, desired_working_dir)
 
 from utilities.automations.general_gui_controller import *
-import pandas as pd
-import re
-from utilities.media_tools.utils import wait_for_path_from_clipboard
-import winsound
-# %%
-# record_gui_template()
+
 # %%
 SHORT_SLEEP_TIME = 0.5
 detect_template_and_act('vpn - chrome icon', sleep_after_action=SHORT_SLEEP_TIME)
