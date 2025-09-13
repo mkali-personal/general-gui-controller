@@ -17,7 +17,7 @@ notification.notify(
     timeout=5
 )
 
-GENERAL_GUI_CONTROLLER_TEMPLATES_PATH = r"utilities\automations\ggc-templates"
+GENERAL_GUI_CONTROLLER_TEMPLATES_PATH = r"ggc-templates"
 
 
 def take_screenshot(screenshot: Optional[np.ndarray] = None, grayscale_mode: bool = True) -> np.ndarray:

@@ -2,7 +2,11 @@ import os
 import sys
 
 # Go to the parent of the parent directory
-desired_working_dir = r"C:\Users\michaeka\git-projects\os-lab"
+current_file_path = os.path.abspath(__file__)
+script_dir = os.path.dirname(current_file_path)
+
+# Go to the parent of the parent directory
+desired_working_dir = os.path.abspath(os.path.join(script_dir, '..'))
 
 # Set it as the current working directory
 os.chdir(desired_working_dir)
@@ -11,10 +15,10 @@ os.chdir(desired_working_dir)
 if desired_working_dir not in sys.path:
     sys.path.insert(0, desired_working_dir)
 
-from utilities.automations.general_gui_controller import *
+from general_gui_controller import *
 import pandas as pd
 import re
-from utilities.media_tools.utils import wait_for_path_from_clipboard
+from utils import wait_for_path_from_clipboard
 import winsound
 
 
