@@ -1,24 +1,7 @@
-import os
-import sys
-
-# Get the directory of the current script
-current_file_path = os.path.abspath(__file__)
-script_dir = os.path.dirname(current_file_path)
-
-# Go to the parent of the parent directory
-desired_working_dir = os.path.abspath(os.path.join(script_dir, '..'))
-
-# Set it as the current working directory
-os.chdir(desired_working_dir)
-
-# Optional: add it to sys.path if you import other modules from there
-if desired_working_dir not in sys.path:
-    sys.path.insert(0, desired_working_dir)
-# %%
-from general_gui_controller import *
+from core.general_gui_controller import *
 import pandas as pd
 import re
-from utils import wait_for_path_from_clipboard
+from core.utils import wait_for_path_from_clipboard
 import winsound
 from local_config import PATH_DROPBOX, TAFNIT_USER_NAME, TAFNIT_PASSWORD
 
@@ -168,7 +151,7 @@ LONG_SLEEP_TIME = 4
 detect_template_and_act('vpn - chrome icon', sleep_after_action=1)
 pyautogui.hotkey('ctrl', 't')
 
-pyautogui.write(r"https://tafnit.weizmann.ac.il/MENU1/LOGINNoD.CSP")
+paste_value(value=r"https://tafnit.weizmann.ac.il/MENU1/LOGINNoD.CSP")
 pyautogui.press('enter')
 detect_template('tafnit - login screen finished loading',
                 max_waiting_time_seconds=np.inf)
@@ -250,7 +233,7 @@ if ask_continue:
         exit()
 
 ishur_upload_position = detect_template_and_act('ishur - upload', relative_position=(0.8, 0.5),
-                                                minimal_confidence=0.97, click=True, wait_for_template_to_appear=False)
+                                                minimal_confidence=0.97, click=True, max_waiting_time_seconds=0)
 # %% Add Note
 sleep(3)
 detect_template_and_act('hearot', click=True, sleep_after_action=SHORT_SLEEP_TIME)
@@ -349,6 +332,9 @@ def paste_row_to_fields(row):
         pyautogui.click(category_2_choice_position)
         sleep(SHORT_SLEEP_TIME)
         detect_template_and_act('adken shura', click=True)
+        info = detect_template_and_act('tafnit - info warning icon', max_waiting_time_seconds=0.1, click=True)
+        if info is not None:
+            detect_template_and_act('tafnit - info warning icon - approve', click=True)
     else:
         pyautogui.click(category_1_position)
         sleep(SHORT_SLEEP_TIME)

@@ -334,8 +334,8 @@ def detect_template(template: Union[str, list[str]],
 
 
 def detect_template_and_act(
-        input_template: Optional[str],
-        secondary_template: Optional[str] = None,
+        input_template: Union[str, list[str]],
+        secondary_template: Union[str, list[str]] = None,
         secondary_template_direction: Optional[str] = None,
         relative_position: Optional[Tuple[float, float]] = None,
         minimal_confidence: float = 0.8,
@@ -687,8 +687,3 @@ def record_gui_template():
     print(templates_usage_syntax)
 
 
-if __name__ == "__main__":
-    # record_gui_template()
-    coordinates = detect_template(['delete_me', 'dummy'],
-                                  secondary_template='delete_me_5', secondary_template_direction='right')  # , multiple_matches_sorter=np.array([0, -1.0])
-    print('kaki')

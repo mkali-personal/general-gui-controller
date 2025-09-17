@@ -1,17 +1,4 @@
-import os
-import sys
-
-# Go to the parent of the parent directory
-desired_working_dir = r"C:\Users\michaeka\git-projects\os-lab"
-
-# Set it as the current working directory
-os.chdir(desired_working_dir)
-
-# Optional: add it to sys.path if you import other modules from there
-if desired_working_dir not in sys.path:
-    sys.path.insert(0, desired_working_dir)
-
-from utilities.automations.general_gui_controller import *
+from core.general_gui_controller import *
 
 # %%
 SHORT_SLEEP_TIME = 0.5

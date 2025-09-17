@@ -1,0 +1,2 @@
+from core.utils import save_clipboard_image_to_desktop
+save_clipboard_image_to_desktop()
