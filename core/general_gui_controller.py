@@ -1,4 +1,3 @@
-import time
 from warnings import warn
 import cv2
 import pyperclip

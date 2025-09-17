@@ -1,8 +1,8 @@
 # %%
-from utilities.automations.general_gui_controller import *
+from core.general_gui_controller import *
 import winsound
 import os
-from utilities.media_tools.utils import wait_for_path_from_clipboard
+from core.utils import wait_for_path_from_clipboard
 import keyboard
 
 

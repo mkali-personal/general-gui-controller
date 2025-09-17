@@ -1,0 +1,8 @@
+sounddevice
+vosk
+plyer
+pandas
+opencv-python
+pyperclip
+Pillow
+

@@ -10,7 +10,7 @@ from datetime import datetime
 import difflib
 import inspect
 from local_config import PATH_STT_MODEL
-from utilities.automations.general_gui_controller import paste_value
+from core.general_gui_controller import paste_value
 
 # Load offline Vosk model
 model = vosk.Model(PATH_STT_MODEL)
