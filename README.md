@@ -9,7 +9,7 @@ To record a patch of the screen, to be searched for later, use the `core.general
 1) A simple image (the coordinate of the center of the image is returned).
 2) A relative coordinate with respect to a simple image (the coordinate of the center of the image plus the relative offset is returned).
 3) A list of images (the location of first one that is found will be used)
-4) A complex template \list of complex templates, where first one image is being searched for, and then the second image is searched for in the area around the first image. The coordinate of the center of the second image is returned.
+4) A complex template\list of complex templates, where first one is being searched for, and then the second image is searched for in the area around the first image. The coordinate of the center of the second image is returned.
 5) A sorter to handle multiple detections (e.g., to return the lowest one, or the one closest to a given point).
 
 `detect_template_and_act`:
