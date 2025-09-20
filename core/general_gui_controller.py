@@ -9,64 +9,81 @@ import pyautogui
 from pynput import keyboard
 from time import sleep
 from plyer import notification
+import time
 
+# Constants
+GENERAL_GUI_CONTROLLER_TEMPLATES_PATH = r"ggc-templates"
+
+# Notify user to prepare GUI
 notification.notify(
     title="This is your main screen",
     message="Make sure the GUI you wish to control is visible on this screen.",
     timeout=5
 )
 
-GENERAL_GUI_CONTROLLER_TEMPLATES_PATH = r"ggc-templates"
-
 
 def take_screenshot(screenshot: Optional[np.ndarray] = None, grayscale_mode: bool = True) -> np.ndarray:
+    """
+    Take a screenshot and optionally convert to grayscale.
+    Args:
+        screenshot (np.ndarray|None): Existing screenshot or None to capture.
+        grayscale_mode (bool): Convert to grayscale if True.
+    Returns:
+        np.ndarray: Screenshot image.
+    """
     if screenshot is None:
         screenshot = ImageGrab.grab()
         screenshot = np.array(screenshot)
-        if grayscale_mode:  # I assume if screenshot is provided, it's already in the desired format
+        if grayscale_mode:
             screenshot = cv2.cvtColor(screenshot, cv2.COLOR_RGB2GRAY)
     return screenshot
 
 
 def minimize_current_window():
+    """Minimize the current window using keyboard shortcuts."""
     keyboard_controller = keyboard.Controller()
-    keyboard_controller.press(keyboard.Key.cmd)  # Windows key
-    keyboard_controller.press(keyboard.Key.down)  # Down arrow
+    keyboard_controller.press(keyboard.Key.cmd)
+    keyboard_controller.press(keyboard.Key.down)
     time.sleep(0.05)
     keyboard_controller.release(keyboard.Key.down)
     keyboard_controller.release(keyboard.Key.cmd)
 
 
 def get_cursor_position(target_name: str) -> Optional[Tuple[float, float]]:
+    """
+    Prompt user to place cursor and record its position on Ctrl press.
+    Args:
+        target_name (str): Name of the target for user prompt.
+    Returns:
+        Optional[Tuple[float, float]]: Cursor position or None if cancelled.
+    """
     print(f"Place the cursor over the\n{target_name}\nand press the left 'Ctrl' on the keyboard")
-
-    # Define a variable to store the position
     position = None
-
-    # Function to record the cursor position
     def on_press(key):
         nonlocal position
         if key == keyboard.Key.ctrl_l:
             position = pyautogui.position()
             print(position)
-            # Stop the listener after capturing position
             return False
-
         if key == keyboard.Key.esc:
             position = None
             print('User pressed Escape, exiting without recording position.')
-            # Stop the listener after capturing position
             return False
-
-    # Start the keyboard listener and wait until Enter is pressed
     with keyboard.Listener(on_press=on_press) as listener:
         listener.join()
-
     print(f"Cursor position recorded for {target_name}: {position}\n")
     return position
 
 
 def get_relative_point_position(x, y, w, h, relative_position: Optional[Tuple[float, float]] = None):
+    """
+    Calculate a point relative to a bounding box.
+    Args:
+        x, y, w, h: Bounding box coordinates.
+        relative_position: (dx, dy) as fractions of width/height.
+    Returns:
+        Tuple[float, float]: Calculated point.
+    """
     x0, y0 = x, y + h
     if relative_position:
         dx = w * relative_position[0]
@@ -76,13 +93,19 @@ def get_relative_point_position(x, y, w, h, relative_position: Optional[Tuple[fl
         return x + w / 2, y + h / 2
 
 
-import time
-
-
 def wait_for_template(input_template: str,
                       verbose: bool = True,
                       max_searching_time: Optional[float] = None
                       ):
+    """
+    Wait for a template to appear on the screen.
+    Args:
+        input_template (str): Template to wait for.
+        verbose (bool): Print dots while waiting if True.
+        max_searching_time (Optional[float]): Max time to wait in seconds.
+    Returns:
+        Position of the found template or None.
+    """
     hold_script = True
     I_DOTS = 0
     start_time = time.time()
@@ -109,6 +132,15 @@ def wait_for_template(input_template: str,
 
 
 def load_templates_list(template_pairs: List[Tuple], grayscale_mode: bool = True, return_all: bool = True) -> list[np.ndarray]:
+    """
+    Load a list of templates from files.
+    Args:
+        template_pairs (List[Tuple]): List of template file name pairs.
+        grayscale_mode (bool): Convert to grayscale if True.
+        return_all (bool): Return all matching files if True.
+    Returns:
+        list[np.ndarray]: List of loaded templates.
+    """
     output_list = []
     for template_pair in template_pairs:
         sublist_1 = load_template(template_pair[0], grayscale_mode, return_all)
@@ -130,6 +162,15 @@ def load_templates_list(template_pairs: List[Tuple], grayscale_mode: bool = True
 
 def load_template(template: Union[str, np.ndarray], grayscale_mode: bool = True, return_all: bool = True) -> Union[
     np.ndarray, list[np.ndarray]]:
+    """
+    Load a template from a file.
+    Args:
+        template (Union[str, np.ndarray]): Template file name or image array.
+        grayscale_mode (bool): Convert to grayscale if True.
+        return_all (bool): Return all matching files if True.
+    Returns:
+        Union[np.ndarray, list[np.ndarray]]: Loaded template or list of templates.
+    """
     if isinstance(template, str):
         if return_all:
             templates = []
@@ -266,6 +307,24 @@ def detect_template(template: Union[str, list[str]],
                     multiple_matches_sorter: Optional[Union[Callable, np.ndarray]] = None,
                     multiple_matches_tolerance: float = 0.03,
                     all_files_name_matching: bool = True):
+    """
+    Detect a template on the screen, optionally with a secondary template for verification.
+    Args:
+        template (Union[str, list[str]]): Primary template file name(s).
+        secondary_template (Optional[Union[str, list[str]]]): Secondary template file name(s) for verification.
+        secondary_template_direction (Optional[str]): Direction to search for secondary template.
+        relative_position (Optional[Tuple[float, float]]): Relative position within the template.
+        minimal_confidence (float): Minimal confidence for a positive detection.
+        exception_if_not_found (bool): Raise exception if True, else warn.
+        warn_if_not_found (bool): Warn if True and template not found.
+        grayscale_mode (bool): Convert to grayscale if True.
+        max_waiting_time_seconds (float): Max time to wait for detection.
+        multiple_matches_sorter (Optional[Union[Callable, np.ndarray]]): Sorter for multiple matches.
+        multiple_matches_tolerance (float): Tolerance for multiple matches.
+        all_files_name_matching (bool): Match all files if True.
+    Returns:
+        Detected position (x, y) or None.
+    """
     assert not (isinstance(template, list) and isinstance(secondary_template, list) and len(template) != len(
         secondary_template)), \
         "If both input_templates and secondary_templates are lists, they must have the same length."
@@ -351,6 +410,29 @@ def detect_template_and_act(
         multiple_matches_sorter: Optional[Union[Callable, np.ndarray]] = None,
         multiple_matches_tolerance: float = 0.03,
 ) -> tuple[float, float] | None:
+    """
+    Detect a template and perform an action (click or move cursor) at its location.
+    Args:
+        input_template (Union[str, list[str]]): Template file name(s) to detect.
+        secondary_template (Union[str, list[str]]): Secondary template for verification.
+        secondary_template_direction (Optional[str]): Direction to search for secondary template.
+        relative_position (Optional[Tuple[float, float]]): Relative position within the template.
+        minimal_confidence (float): Minimal confidence for detection.
+        exception_if_not_found (bool): Raise exception if True, else warn.
+        warn_if_not_found (bool): Warn if True and template not found.
+        place_cursor (bool): Move cursor to the detected position if True.
+        click (bool): Click at the detected position if True.
+        sleep_before_detection (Optional[float]): Sleep time before detection.
+        sleep_after_action (Optional[float]): Sleep time after action.
+        value_to_paste: Value to paste at the detected position.
+        override_coordinates (Optional[tuple[float, float]]): Coordinates to use instead of template detection.
+        grayscale_mode (bool): Convert to grayscale if True.
+        max_waiting_time_seconds (float): Max time to wait for detection.
+        multiple_matches_sorter (Optional[Union[Callable, np.ndarray]]): Sorter for multiple matches.
+        multiple_matches_tolerance (float): Tolerance for multiple matches.
+    Returns:
+        Detected position (x, y) or None.
+    """
     assert value_to_paste is None or click is True, "Cannot paste text without clicking the target location first."
     assert input_template is not None or override_coordinates is not None, \
         "Either input_template or override_coordinates must be provided."
@@ -635,6 +717,14 @@ def paste_value(value: Optional[str], location=None, click=True, delete_existing
 
 
 def record_gui_template():
+    """
+    Record a GUI template by capturing a screen region and computing its position.
+    Steps:
+        1. Get bounding box corners from the user.
+        2. Capture screen and compute coordinate shift.
+        3. Crop and save the template image.
+        4. Record target position if needed.
+    """
     # Step 2: Capture screen and compute coordinate shift
     screenshot = ImageGrab.grab()  # Takes screenshot of primary monitor (or full virtual desktop)
     screenshot = np.array(screenshot)
@@ -684,5 +774,3 @@ def record_gui_template():
         templates_usage_syntax = f'detect_template_and_act(r"{filename}.png", relative_position=({relative_x:.3f}, {relative_y:.3f}))'
     pyperclip.copy(templates_usage_syntax)
     print(templates_usage_syntax)
-
-
