@@ -141,7 +141,6 @@ elif scientific_or_food_text.lower() == 'f':
 else:
     print("Invalid input. Please enter 's' for scientific or 'f' for food.")
     exit()
-#
 
 SHORT_SLEEP_TIME = 0.2
 MEDIUM_SLEEP_TIME = 1
@@ -164,7 +163,7 @@ pyautogui.press('tab')
 pyautogui.press('tab')
 pyautogui.press('tab')
 pyautogui.press('enter')
-detect_template_and_act('1password - x icon', max_waiting_time_seconds=2, sleep_before_detection=1)
+detect_template_and_act('1password - x icon', max_waiting_time_seconds=3, sleep_before_detection=2)
 
 # %%
 # # # %% Main menu navigation::
@@ -178,7 +177,7 @@ pyautogui.moveTo(2, 2)
 time.sleep(1)
 
 if scientific:
-    button_position = detect_template_and_act("drisha lerechesh", click=True, sleep_after_action=10)
+    button_position = detect_template_and_act("drisha lerechesh", click=True, sleep_after_action=2)
 else:
     button_position = detect_template_and_act('hazmana kaspit sherutim', click=True)
 
