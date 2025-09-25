@@ -376,7 +376,7 @@ def detect_template(template: Union[str, list[str]],
                     multiple_matches_tolerance=multiple_matches_tolerance
                 )
                 if detection_results is not None:
-                    print(f"\nFound template '{template}'")
+                    print(f"\nFound template '{template}' at position {detection_results}")
                     return detection_results[0], detection_results[1]  # x, y
         if max_waiting_time_seconds == 0 or (time.time() - start_time) > max_waiting_time_seconds:
             retry_flag = False
@@ -716,7 +716,7 @@ def paste_value(value: Optional[str], location=None, click=True, delete_existing
     pyperclip.copy(original_clipboard)
 
 
-def record_gui_template():
+def record_gui_template(file_name: Optional[str] = None):
     """
     Record a GUI template by capturing a screen region and computing its position.
     Steps:
@@ -761,16 +761,16 @@ def record_gui_template():
         relative_y = (bottom - ty) / height  # Inverted Y axis
     else:
         relative_x, relative_y = None, None
-
-    filename = input("Enter a name for the template (without extension), then press Enter: ").strip()
+    if file_name is None:
+        file_name = input("Enter a name for the template (without extension), then press Enter: ").strip()
     os.makedirs(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH, exist_ok=True)
-    output_path = os.path.join(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH, filename + ".png")
+    output_path = os.path.join(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH, file_name + ".png")
     cv2.imwrite(output_path, cv2.cvtColor(cropped, cv2.COLOR_RGB2BGR))
     print(f"Saved cropped image to: {output_path}")
 
     if relative_x is None or relative_y is None:
-        templates_usage_syntax = f'detect_template_and_act(r"{filename}.png")'
+        templates_usage_syntax = f'detect_template_and_act(r"{file_name}.png")'
     else:
-        templates_usage_syntax = f'detect_template_and_act(r"{filename}.png", relative_position=({relative_x:.3f}, {relative_y:.3f}))'
+        templates_usage_syntax = f'detect_template_and_act(r"{file_name}.png", relative_position=({relative_x:.3f}, {relative_y:.3f}))'
     pyperclip.copy(templates_usage_syntax)
     print(templates_usage_syntax)
