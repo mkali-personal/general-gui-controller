@@ -391,6 +391,24 @@ def detect_template(template: Union[str, list[str]],
     return None
 
 
+def wait_for_template_to_disappear(template: Union[str, list[str]],
+                                   max_waiting_time_seconds: float = np.inf,
+                                   **kwargs):
+    start_time = time.time()
+    retry_flag = True
+    I_DOTS = 0
+    while retry_flag:
+        if I_DOTS > 0:
+            dots = '.' * (I_DOTS % 4)
+            print(f"Waiting for template '{template}' to disappear{dots}")
+        detected_position = detect_template(template, max_waiting_time_seconds=0, exception_if_not_found=False, warn_if_not_found=False, **kwargs)
+        if detected_position is None:
+            print(f"\nTemplate '{template}' has disappeared")
+            return
+        if max_waiting_time_seconds == 0 or (time.time() - start_time) > max_waiting_time_seconds:
+            retry_flag = False
+        else:
+            I_DOTS += 1
 def detect_template_and_act(
         input_template: Union[str, list[str]],
         secondary_template: Union[str, list[str]] = None,
@@ -710,6 +728,7 @@ def paste_value(value: Optional[str], location=None, click=True, delete_existing
         pyautogui.hotkey("ctrl", "a")  # Select any existing text
         pyautogui.hotkey("backspace")  # Clear the field
     original_clipboard = pyperclip.paste()
+    sleep(0.05)
     pyperclip.copy(str(value))  # Copy the Hebrew text to the clipboard
     sleep(0.05)  # Give some time for the clipboard to update
     pyautogui.hotkey('ctrl', 'v')
@@ -725,6 +744,8 @@ def record_gui_template(file_name: Optional[str] = None):
         3. Crop and save the template image.
         4. Record target position if needed.
     """
+    get_cursor_position("Make sure the target screen patch is visible and press Left Ctrl to continue.")
+
     # Step 2: Capture screen and compute coordinate shift
     screenshot = ImageGrab.grab()  # Takes screenshot of primary monitor (or full virtual desktop)
     screenshot = np.array(screenshot)
@@ -763,6 +784,8 @@ def record_gui_template(file_name: Optional[str] = None):
         relative_x, relative_y = None, None
     if file_name is None:
         file_name = input("Enter a name for the template (without extension), then press Enter: ").strip()
+    if file_name.endswith('.png'):
+        file_name = file_name[:-4]
     os.makedirs(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH, exist_ok=True)
     output_path = os.path.join(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH, file_name + ".png")
     cv2.imwrite(output_path, cv2.cvtColor(cropped, cv2.COLOR_RGB2BGR))
