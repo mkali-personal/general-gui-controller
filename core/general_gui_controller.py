@@ -792,8 +792,8 @@ def record_gui_template(file_name: Optional[str] = None):
     print(f"Saved cropped image to: {output_path}")
 
     if relative_x is None or relative_y is None:
-        templates_usage_syntax = f'detect_template_and_act(r"{file_name}.png")'
+        templates_usage_syntax = f'detect_template_and_act(r"{file_name}")'
     else:
-        templates_usage_syntax = f'detect_template_and_act(r"{file_name}.png", relative_position=({relative_x:.3f}, {relative_y:.3f}))'
+        templates_usage_syntax = f'detect_template_and_act(r"{file_name}", relative_position=({relative_x:.3f}, {relative_y:.3f}))'
     pyperclip.copy(templates_usage_syntax)
     print(templates_usage_syntax)

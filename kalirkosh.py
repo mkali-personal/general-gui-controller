@@ -1,3 +1,5 @@
+import pyautogui
+
 from core.general_gui_controller import *
 import pandas as pd
 import re
@@ -6,7 +8,11 @@ import winsound
 from local_config import PATH_DROPBOX, TAFNIT_USER_NAME, TAFNIT_PASSWORD
 
 pyautogui.FAILSAFE = False
-
+SHORT_SLEEP_TIME = 0.2
+MEDIUM_SLEEP_TIME = 1
+LONG_SLEEP_TIME = 4
+# %%
+# record_gui_template('tafnit - OK button for exists files one the server - 2560-1440')
 
 # %%
 def load_tabular_data(path: str) -> pd.DataFrame:
@@ -95,7 +101,6 @@ def parse_scientific_table(df: pd.DataFrame, rosh_electroptics_format: bool = Fa
                 df[col] = None
 
         # Clean the columns
-        # Clean the columns
         df['discount'] = df['discount'].apply(clean_number)
         df['discount'] = df['discount'].apply(lambda x: 0 if x is None else x * 100 if x < 1 else x)
         df['quantity'] = df['quantity'].apply(clean_number)
@@ -141,10 +146,8 @@ elif scientific_or_food_text.lower() == 'f':
 else:
     print("Invalid input. Please enter 's' for scientific or 'f' for food.")
     exit()
+# %%
 
-SHORT_SLEEP_TIME = 0.2
-MEDIUM_SLEEP_TIME = 1
-LONG_SLEEP_TIME = 4
 
 
 detect_template_and_act('vpn - chrome icon', sleep_after_action=1)
@@ -205,22 +208,25 @@ if continue_keyword.lower() == 'e':
 
 # %% Upload quote:
 nispachim_position = detect_template_and_act('nispachim', click=True, sleep_after_action=SHORT_SLEEP_TIME)
+# %%
 sherutei_archive_position = detect_template_and_act('sherutei archive', click=True,
                                                     sleep_after_action=MEDIUM_SLEEP_TIME)
 teur_mismach_position = detect_template_and_act('teur mismach', relative_position=(0.1, 0.5), click=True,
                                                 sleep_after_action=SHORT_SLEEP_TIME, value_to_paste='quote')
 haalaa_lasharat_position = detect_template_and_act('haalaa lasharat', click=True)
-bechar_kovets_position = detect_template_and_act('bechar kovets', click=True)
 winsound.Beep(880, 500)
+repetitive_food_order = input("Do you want to use the repetitive food orders excel? (y/n)")
+repetitive_food_order = repetitive_food_order.lower() == 'y'
+bechar_kovets_position = detect_template_and_act('bechar kovets', click=True, sleep_after_action=SHORT_SLEEP_TIME)
 ask_continue = False
-if scientific is False:
-    repetitive_food_order = input("Do you want to use the repetitive food orders excel? (y/n)")
-    repetitive_food_order = repetitive_food_order.lower()
+if not scientific:
+
     if repetitive_food_order:
-        quote_path = os.path.join(PATH_DROPBOX, r"Lab utilities\recurrent food order.xlsx")
+        quote_path = os.path.join(PATH_DROPBOX, r"Lab utilities\Tafnit\Food\Halil order.csv")
         paste_value(quote_path)
         sleep(SHORT_SLEEP_TIME)
         pyautogui.press('enter')
+        sleep(SHORT_SLEEP_TIME)
     else:
         ask_continue = True
 else:
@@ -230,9 +236,12 @@ if ask_continue:
         "Choose the quote from the list, go back here, and press enter to continue or s to stop and exit\n")
     if continue_keyword.lower() == 'e':
         exit()
-
+upload_warning = detect_template_and_act(r"tafnit - OK button for exists files one the server - 2560-1440", relative_position=(0.519, 0.353), max_waiting_time_seconds=0.5, click=True, sleep_before_detection=0.2)
+if upload_warning is not None:
+    winsound.Beep(880, 500)
+    input("There is already a file with this name on the server. Please handle the situation (rename/overwrite) manually, then come back here and press enter to continue")
 ishur_upload_position = detect_template_and_act('ishur - upload', relative_position=(0.8, 0.5),
-                                                minimal_confidence=0.97, click=True, max_waiting_time_seconds=0)
+                                                minimal_confidence=0.97, click=True, max_waiting_time_seconds=0.5, sleep_before_detection=0.2)
 # %% Add Note
 sleep(3)
 detect_template_and_act('hearot', click=True, sleep_after_action=SHORT_SLEEP_TIME)
@@ -242,22 +251,20 @@ if scientific:
     winsound.Beep(880, 500)
     input("Put the actual dimensions, then come back here and press enter to continue")
     pritim_position = detect_template_and_act('pritim', click=True, sleep_after_action=MEDIUM_SLEEP_TIME)
-
 else:
+    s = pd.Timestamp.now() + pd.Timedelta(days=1)
+    s = s.strftime('%d/%m/%Y')
     notes_position = detect_template_and_act(input_template='hearot nosafot',
                             secondary_template='tafnit - field right edge',
                             secondary_template_direction='left',
                             click=True,
                             sleep_after_action=SHORT_SLEEP_TIME,
-                            value_to_paste='נשמח להזמנה 26/08/2025-ל בשעה 12:30. שם איש קשר - מיכאל קלי. טלפון - 0545952783. מכון ויצמן, בניין פיזיקה, כניסה ראשית.')
+                            value_to_paste=f'נשמח להזמנה {s}-ל בשעה 12:30. שם איש קשר - מיכאל קלי. טלפון - 0545952783. מכון ויצמן, בניין פיזיקה, כניסה ראשית.')
     winsound.Beep(880, 500)
     input("Put the actual date and contact details, then come back here and press enter to continue")
     pyautogui.click(notes_position)
-    sleep(3)
     pyautogui.hotkey('ctrl', 'a')
-    sleep(3)
     pyautogui.hotkey('ctrl', 'c')
-    sleep(3)
     pritim_position = detect_template_and_act('pritim', click=True, sleep_after_action=MEDIUM_SLEEP_TIME)
     sleep(3)
     detect_template_and_act(input_template='pritim - hearot',
@@ -268,7 +275,6 @@ else:
     sleep(3)
     pyautogui.hotkey('ctrl', 'v')
     sleep(3)
-winsound.Beep(880, 500)
 
 # %%
 
@@ -383,15 +389,16 @@ else:
         "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letter does not matter)\n"
         "After copying come back here and press enter to continue")
 
-print('Copy the path to the csv with \n\n')
-items_csv = wait_for_path_from_clipboard(filetype='csv')
+if not repetitive_food_order:
+    print('Copy the path to the csv with the items details \n\n')
+    items_csv = wait_for_path_from_clipboard(filetype='csv')
+else:
+    items_csv = quote_path
 
 df = load_tabular_data(items_csv)
-
-if scientific:
-    df = parse_scientific_table(df, rosh_electroptics_format=rosh_electroptics_format)
-else:
-    df.columns = df.columns.str.lower()
+df = parse_scientific_table(df,
+                            rosh_electroptics_format=rosh_electroptics_format,
+                            scientific=scientific)
 
 for _, sample_row in df.iterrows():
     paste_row_to_fields(sample_row)
