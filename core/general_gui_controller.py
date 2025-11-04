@@ -393,6 +393,7 @@ def detect_template(template: Union[str, list[str]],
 
 def wait_for_template_to_disappear(template: Union[str, list[str]],
                                    max_waiting_time_seconds: float = np.inf,
+                                   sleep_after_iteration_seconds: float = 0,
                                    **kwargs):
     start_time = time.time()
     retry_flag = True
@@ -409,9 +410,10 @@ def wait_for_template_to_disappear(template: Union[str, list[str]],
             retry_flag = False
         else:
             I_DOTS += 1
+            sleep(sleep_after_iteration_seconds)
 def detect_template_and_act(
-        input_template: Union[str, list[str]],
-        secondary_template: Union[str, list[str]] = None,
+        input_template: Optional[Union[str, list[str]]] = None,
+        secondary_template: Optional[Union[str, list[str]]] = None,
         secondary_template_direction: Optional[str] = None,
         relative_position: Optional[Tuple[float, float]] = None,
         minimal_confidence: float = 0.8,
@@ -421,7 +423,7 @@ def detect_template_and_act(
         click: bool = True,
         sleep_before_detection: Optional[float] = None,
         sleep_after_action: Optional[float] = None,
-        value_to_paste=None,
+        text_to_paste=None,
         override_coordinates: Optional[tuple[float, float]] = None,
         grayscale_mode: bool = True,
         max_waiting_time_seconds: float = np.inf,
@@ -442,7 +444,7 @@ def detect_template_and_act(
         click (bool): Click at the detected position if True.
         sleep_before_detection (Optional[float]): Sleep time before detection.
         sleep_after_action (Optional[float]): Sleep time after action.
-        value_to_paste: Value to paste at the detected position.
+        text_to_paste: Value to paste at the detected position.
         override_coordinates (Optional[tuple[float, float]]): Coordinates to use instead of template detection.
         grayscale_mode (bool): Convert to grayscale if True.
         max_waiting_time_seconds (float): Max time to wait for detection.
@@ -451,7 +453,7 @@ def detect_template_and_act(
     Returns:
         Detected position (x, y) or None.
     """
-    assert value_to_paste is None or click is True, "Cannot paste text without clicking the target location first."
+    assert text_to_paste is None or click is True, "Cannot paste text without clicking the target location first."
     assert input_template is not None or override_coordinates is not None, \
         "Either input_template or override_coordinates must be provided."
 
@@ -471,8 +473,8 @@ def detect_template_and_act(
     if coordinates is not None:
         if click:
             pyautogui.click(coordinates[0], coordinates[1])
-            if value_to_paste is not None:
-                paste_value(value_to_paste, coordinates, click=False, delete_existing=True)
+            if text_to_paste is not None:
+                paste_value(text_to_paste, coordinates, click=False, delete_existing=True)
         elif place_cursor:
             pyautogui.moveTo(coordinates[0], coordinates[1])
 

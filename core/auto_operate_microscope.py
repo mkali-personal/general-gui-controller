@@ -14,14 +14,18 @@ def memorize_locations():
     """
     locations = dict()
     locations['exposure_time_label'] = detect_template_and_act(r"exposure_time.png", click=True)
-    locations['exposure_time'] = detect_template_and_act(r"exposure_time.png", relative_position=(2.5, 0.5), click=True, sleep_after_action=0.2)
+    locations['exposure_time'] = detect_template_and_act(r"exposure_time.png", relative_position=(2.5, 0.5), click=True,
+                                                         sleep_after_action=0.2)
     locations['s'] = detect_template('s-ms-mus.png', relative_position=(0.1, -0.5))
     locations['ms'] = detect_template('s-ms-mus.png', relative_position=(0.5, -0.5))
     locations['mus'] = detect_template('s-ms-mus.png', relative_position=(0.8, -0.5))
-    locations['ok_cancel_exposure_time'] = detect_template_and_act('ok cancel.png', relative_position=(0.3, 0.5), click=True, sleep_after_action=0.2)
-    locations['gain'] = detect_template_and_act("gain.png", relative_position=(2, 0.5), click=True, sleep_after_action=0.2)
+    locations['ok_cancel_exposure_time'] = detect_template_and_act('ok cancel.png', relative_position=(0.3, 0.5),
+                                                                   click=True, sleep_after_action=0.2)
+    locations['gain'] = detect_template_and_act("gain.png", relative_position=(2, 0.5), click=True,
+                                                sleep_after_action=0.2)
     locations['gain_range'] = detect_template("Range 100 5000.png", relative_position=(0.5, -0.3))
-    locations['ok_cancel_gain'] = detect_template_and_act('ok cancel.png', relative_position=(0.3, 0.5), click=True, sleep_after_action=0.2)
+    locations['ok_cancel_gain'] = detect_template_and_act('ok cancel.png', relative_position=(0.3, 0.5), click=True,
+                                                          sleep_after_action=0.2)
     return locations
 
 
@@ -66,10 +70,13 @@ def decompose_exposure_time(exposure_time_ms: float):
 
 def _input_exposure_time_fields(s, ms, mus, locations_dict):
     """Helper to input s, ms, mus fields for exposure time."""
-    detect_template_and_act('s-ms-mus.png', relative_position=(0.1, -0.5), click=True, value_to_paste=s, override_coordinates=locations_dict.get('s'))
-    detect_template_and_act('s-ms-mus.png', relative_position=(0.5, -0.5), click=True, value_to_paste=ms, override_coordinates=locations_dict.get('ms'))
+    detect_template_and_act('s-ms-mus.png', relative_position=(0.1, -0.5), click=True, text_to_paste=s,
+                            override_coordinates=locations_dict.get('s'))
+    detect_template_and_act('s-ms-mus.png', relative_position=(0.5, -0.5), click=True, text_to_paste=ms,
+                            override_coordinates=locations_dict.get('ms'))
     if mus is not None:
-        detect_template_and_act('s-ms-mus.png', relative_position=(0.8, -0.5), click=True, value_to_paste=mus, override_coordinates=locations_dict.get('mus'))
+        detect_template_and_act('s-ms-mus.png', relative_position=(0.8, -0.5), click=True, text_to_paste=mus,
+                                override_coordinates=locations_dict.get('mus'))
 
 
 def insert_exposure_time(s=5, ms=0, mus=None, locations_dict=None):
@@ -83,9 +90,12 @@ def insert_exposure_time(s=5, ms=0, mus=None, locations_dict=None):
     """
     if locations_dict is None:
         locations_dict = dict()
-    detect_template_and_act(r"exposure_time.png", secondary_template=r"microscope_camera - toolbar border", secondary_template_direction="right", relative_position=(-1, 0.5), click=True, sleep_after_action=0.2, override_coordinates=locations_dict.get('exposure_time'))
+    detect_template_and_act(r"exposure_time.png", secondary_template=r"microscope_camera - toolbar border",
+                            secondary_template_direction="right", relative_position=(-1, 0.5), click=True,
+                            sleep_after_action=0.2, override_coordinates=locations_dict.get('exposure_time'))
     _input_exposure_time_fields(s, ms, mus, locations_dict)
-    detect_template_and_act('ok cancel.png', relative_position=(0.3, 0.5), click=True, sleep_after_action=0.4, override_coordinates=locations_dict.get('ok_cancel_exposure_time'))
+    detect_template_and_act('ok cancel.png', relative_position=(0.3, 0.5), click=True, sleep_after_action=0.4,
+                            override_coordinates=locations_dict.get('ok_cancel_exposure_time'))
 
 
 def insert_gain(gain=400, locations_dict=None):
@@ -97,9 +107,13 @@ def insert_gain(gain=400, locations_dict=None):
     """
     if locations_dict is None:
         locations_dict = dict()
-    detect_template_and_act("gain.png", secondary_template=r"microscope_camera - toolbar border", secondary_template_direction="right", relative_position=(-1, 0.5), click=True, sleep_after_action=0.2, override_coordinates=locations_dict.get('gain'))
-    detect_template_and_act("Range 100 5000.png", relative_position=(0.5, -0.3), click=True, value_to_paste=gain, override_coordinates=locations_dict.get('gain_range'))
-    detect_template_and_act('ok cancel.png', relative_position=(0.3, 0.5), click=True, sleep_after_action=0.4, override_coordinates=locations_dict.get('ok_cancel_gain'))
+    detect_template_and_act("gain.png", secondary_template=r"microscope_camera - toolbar border",
+                            secondary_template_direction="right", relative_position=(-1, 0.5), click=True,
+                            sleep_after_action=0.2, override_coordinates=locations_dict.get('gain'))
+    detect_template_and_act("Range 100 5000.png", relative_position=(0.5, -0.3), click=True, text_to_paste=gain,
+                            override_coordinates=locations_dict.get('gain_range'))
+    detect_template_and_act('ok cancel.png', relative_position=(0.3, 0.5), click=True, sleep_after_action=0.4,
+                            override_coordinates=locations_dict.get('ok_cancel_gain'))
 
 
 def generate_name_path(session_path, magnification, exposure_time_ms, gain, side):

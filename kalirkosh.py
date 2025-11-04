@@ -149,7 +149,6 @@ else:
 # %%
 
 
-
 detect_template_and_act('vpn - chrome icon', sleep_after_action=1)
 pyautogui.hotkey('ctrl', 't')
 
@@ -166,14 +165,13 @@ pyautogui.press('tab')
 pyautogui.press('tab')
 pyautogui.press('tab')
 pyautogui.press('enter')
-detect_template_and_act('1password - x icon', max_waiting_time_seconds=3, sleep_before_detection=2)
+detect_template_and_act('1password - x icon', sleep_before_detection=2, max_waiting_time_seconds=3)
 
 # %%
 # # # %% Main menu navigation::
 button_position = detect_template_and_act('ivrit - main', relative_position=(0.5, 0.3), click=True,
                                           sleep_after_action=SHORT_SLEEP_TIME)
-button_position = detect_template_and_act('yazam', relative_position=(-0.5, 0.3), click=True,
-                                          sleep_after_action=0.5)
+button_position = detect_template_and_act('yazam', relative_position=(-0.5, 0.3), click=True, sleep_after_action=0.5)
 button_position = detect_template_and_act('ivrit - secondary', click=True, sleep_after_action=SHORT_SLEEP_TIME)
 button_position = detect_template_and_act('klita', click=True)
 pyautogui.moveTo(2, 2)
@@ -189,12 +187,12 @@ detect_template(['tafnit - drisha lerechesh', 'tafnit - hazmana kaspit sherutim'
 detect_template('ivrit - main')
 
 # %% Supplier selection:
-button_position = detect_template_and_act('sapak', click=True, sleep_after_action=SHORT_SLEEP_TIME, sleep_before_detection=SHORT_SLEEP_TIME)
+button_position = detect_template_and_act('sapak', click=True, sleep_before_detection=SHORT_SLEEP_TIME,
+                                          sleep_after_action=SHORT_SLEEP_TIME)
 
 wait_for_template('tafnit - pirtei sochen.png')
 
-detect_template_and_act(input_template='tafnit - sochen',
-                        secondary_template='tafnit - open window button',
+detect_template_and_act(input_template='tafnit - sochen', secondary_template='tafnit - open window button',
                         secondary_template_direction='right'),
 
 wait_for_template('tafnit - external window toolbar')
@@ -212,7 +210,7 @@ nispachim_position = detect_template_and_act('nispachim', click=True, sleep_afte
 sherutei_archive_position = detect_template_and_act('sherutei archive', click=True,
                                                     sleep_after_action=MEDIUM_SLEEP_TIME)
 teur_mismach_position = detect_template_and_act('teur mismach', relative_position=(0.1, 0.5), click=True,
-                                                sleep_after_action=SHORT_SLEEP_TIME, value_to_paste='quote')
+                                                sleep_after_action=SHORT_SLEEP_TIME, text_to_paste='quote')
 haalaa_lasharat_position = detect_template_and_act('haalaa lasharat', click=True)
 winsound.Beep(880, 500)
 repetitive_food_order = input("Do you want to use the repetitive food orders excel? (y/n)")
@@ -236,18 +234,21 @@ if ask_continue:
         "Choose the quote from the list, go back here, and press enter to continue or s to stop and exit\n")
     if continue_keyword.lower() == 'e':
         exit()
-upload_warning = detect_template_and_act(r"tafnit - OK button for exists files one the server - 2560-1440", relative_position=(0.519, 0.353), max_waiting_time_seconds=0.5, click=True, sleep_before_detection=0.2)
+upload_warning = detect_template_and_act(r"tafnit - OK button for exists files one the server - 2560-1440",
+                                         relative_position=(0.519, 0.353), click=True, sleep_before_detection=0.2,
+                                         max_waiting_time_seconds=0.5)
 if upload_warning is not None:
     winsound.Beep(880, 500)
     input("There is already a file with this name on the server. Please handle the situation (rename/overwrite) manually, then come back here and press enter to continue")
-ishur_upload_position = detect_template_and_act('ishur - upload', relative_position=(0.8, 0.5),
-                                                minimal_confidence=0.97, click=True, max_waiting_time_seconds=0.5, sleep_before_detection=0.2)
+ishur_upload_position = detect_template_and_act('ishur - upload', relative_position=(0.8, 0.5), minimal_confidence=0.97,
+                                                click=True, sleep_before_detection=0.2, max_waiting_time_seconds=0.5)
 # %% Add Note
 sleep(3)
 detect_template_and_act('hearot', click=True, sleep_after_action=SHORT_SLEEP_TIME)
 
 if scientific:
-    detect_template_and_act('weight estimation', click=True, sleep_after_action=SHORT_SLEEP_TIME, value_to_paste='30cmX30cmX30cm  5kg', relative_position=(-0.5, 0.5))
+    detect_template_and_act('weight estimation', relative_position=(-0.5, 0.5), click=True,
+                            sleep_after_action=SHORT_SLEEP_TIME, text_to_paste='30cmX30cmX30cm  5kg')
     winsound.Beep(880, 500)
     input("Put the actual dimensions, then come back here and press enter to continue")
     pritim_position = detect_template_and_act('pritim', click=True, sleep_after_action=MEDIUM_SLEEP_TIME)
@@ -255,11 +256,10 @@ else:
     s = pd.Timestamp.now() + pd.Timedelta(days=1)
     s = s.strftime('%d/%m/%Y')
     notes_position = detect_template_and_act(input_template='hearot nosafot',
-                            secondary_template='tafnit - field right edge',
-                            secondary_template_direction='left',
-                            click=True,
-                            sleep_after_action=SHORT_SLEEP_TIME,
-                            value_to_paste=f'נשמח להזמנה {s}-ל בשעה 12:30. שם איש קשר - מיכאל קלי. טלפון - 0545952783. מכון ויצמן, בניין פיזיקה, כניסה ראשית.')
+                                             secondary_template='tafnit - field right edge',
+                                             secondary_template_direction='left', click=True,
+                                             sleep_after_action=SHORT_SLEEP_TIME,
+                                             text_to_paste=f'נשמח להזמנה {s}-ל בשעה 12:30. שם איש קשר - מיכאל קלי. טלפון - 0545952783. מכון ויצמן, בניין פיזיקה, כניסה ראשית.')
     winsound.Beep(880, 500)
     input("Put the actual date and contact details, then come back here and press enter to continue")
     pyautogui.click(notes_position)
@@ -267,11 +267,8 @@ else:
     pyautogui.hotkey('ctrl', 'c')
     pritim_position = detect_template_and_act('pritim', click=True, sleep_after_action=MEDIUM_SLEEP_TIME)
     sleep(3)
-    detect_template_and_act(input_template='pritim - hearot',
-                            secondary_template='tafnit - field right edge',
-                            secondary_template_direction='left',
-                            click=True,
-                            sleep_after_action=SHORT_SLEEP_TIME)
+    detect_template_and_act(input_template='pritim - hearot', secondary_template='tafnit - field right edge',
+                            secondary_template_direction='left', click=True, sleep_after_action=SHORT_SLEEP_TIME)
     sleep(3)
     pyautogui.hotkey('ctrl', 'v')
     sleep(3)
@@ -299,8 +296,7 @@ if not scientific:
     category_3_position = detect_template_and_act('categories', relative_position=(-0.4, 0.35), click=True,
                                                   sleep_after_action=SHORT_SLEEP_TIME)
 
-    category_3_choice_position = detect_template_and_act('kibud kal', click=True,
-                                                         sleep_after_action=SHORT_SLEEP_TIME)
+    category_3_choice_position = detect_template_and_act('kibud kal', click=True, sleep_after_action=SHORT_SLEEP_TIME)
 
 
 # %%
@@ -326,8 +322,10 @@ def paste_row_to_fields(row):
     paste_value(row['price'], mechir_bematbea_position)
 
     if scientific:
-        detect_template_and_act('makat_sapak', relative_position=(-0.945, 0.542), value_to_paste=row['id'], sleep_after_action=SHORT_SLEEP_TIME)
-        detect_template_and_act('hanacha', relative_position=(-0.5, 0.5), value_to_paste=row['discount'], sleep_after_action=SHORT_SLEEP_TIME)
+        detect_template_and_act('makat_sapak', relative_position=(-0.945, 0.542), sleep_after_action=SHORT_SLEEP_TIME,
+                                text_to_paste=row['id'])
+        detect_template_and_act('hanacha', relative_position=(-0.5, 0.5), sleep_after_action=SHORT_SLEEP_TIME,
+                                text_to_paste=row['discount'])
         pyautogui.click(category_1_position)
         sleep(SHORT_SLEEP_TIME)
         pyautogui.click(category_1_choice_position)
@@ -337,7 +335,7 @@ def paste_row_to_fields(row):
         pyautogui.click(category_2_choice_position)
         sleep(SHORT_SLEEP_TIME)
         detect_template_and_act('adken shura', click=True)
-        info = detect_template_and_act('tafnit - info warning icon', max_waiting_time_seconds=0.1, click=True)
+        info = detect_template_and_act('tafnit - info warning icon', click=True, max_waiting_time_seconds=0.1)
         if info is not None:
             detect_template_and_act('tafnit - info warning icon - approve', click=True)
     else:
@@ -361,8 +359,8 @@ def paste_row_to_fields(row):
                                      warn_if_not_found=False, max_waiting_time_seconds=0)
     if tafnit_warning is not None:
         input("there is a problem, fix it and press here enter to continue")
-        detect_template_and_act('kalirkosh - OK warning after update row', max_waiting_time_seconds=0,
-                        warn_if_not_found=False, exception_if_not_found=False, click=True)
+        detect_template_and_act('kalirkosh - OK warning after update row', exception_if_not_found=False,
+                                warn_if_not_found=False, click=True, max_waiting_time_seconds=0)
 
 
 winsound.Beep(880, 500)
