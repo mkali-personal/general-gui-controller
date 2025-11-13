@@ -299,7 +299,7 @@ def detect_template(template: Union[str, list[str]],
                     secondary_template: Optional[Union[str, list[str]]] = None,
                     secondary_template_direction: Optional[str] = None,
                     relative_position: Optional[Tuple[float, float]] = None,
-                    minimal_confidence: float = 0.8,
+                    minimal_confidence: float = 0.99,
                     exception_if_not_found: bool = False,
                     warn_if_not_found: bool = True,
                     grayscale_mode: bool = True,
@@ -416,7 +416,7 @@ def detect_template_and_act(
         secondary_template: Optional[Union[str, list[str]]] = None,
         secondary_template_direction: Optional[str] = None,
         relative_position: Optional[Tuple[float, float]] = None,
-        minimal_confidence: float = 0.8,
+        minimal_confidence: float = 0.99,
         exception_if_not_found: bool = False,
         warn_if_not_found: bool = True,
         place_cursor: bool = True,
@@ -599,7 +599,7 @@ def detect_complex_template(
     direction = direction.lower()
     assert direction in {'up', 'down', 'left', 'right'}, "direction must be one of: 'up', 'down', 'left', 'right'"
 
-    minimal_confidence = kwargs.get('minimal_confidence', 0.8)
+    minimal_confidence = kwargs.get('minimal_confidence', 0.99)
     exception_if_not_found = kwargs.get('exception_if_not_found', False)
     warn_if_not_found = kwargs.get('warn_if_not_found', True)
     relative_position_b = kwargs.get('relative_position', None)
@@ -737,7 +737,7 @@ def paste_value(value: Optional[str], location=None, click=True, delete_existing
     pyperclip.copy(original_clipboard)
 
 
-def record_gui_template(file_name: Optional[str] = None):
+def record_gui_template(template_name: Optional[str] = None):
     """
     Record a GUI template by capturing a screen region and computing its position.
     Steps:
@@ -751,7 +751,7 @@ def record_gui_template(file_name: Optional[str] = None):
     # Step 2: Capture screen and compute coordinate shift
     screenshot = ImageGrab.grab()  # Takes screenshot of primary monitor (or full virtual desktop)
     screenshot = np.array(screenshot)
-
+    screenshot_height, screenshot_width = screenshot.shape[0], screenshot.shape[1]
     # Step 1: Get bounding box corners in screen coords
     ll_screen = get_cursor_position("Place the cursor on the LOWER LEFT corner of the box and press Left Ctrl.")
     ur_screen = get_cursor_position("Place the cursor on the UPPER RIGHT corner of the box and press Left Ctrl.")
@@ -784,18 +784,18 @@ def record_gui_template(file_name: Optional[str] = None):
         relative_y = (bottom - ty) / height  # Inverted Y axis
     else:
         relative_x, relative_y = None, None
-    if file_name is None:
-        file_name = input("Enter a name for the template (without extension), then press Enter: ").strip()
-    if file_name.endswith('.png'):
-        file_name = file_name[:-4]
+    if template_name is None:
+        template_name = input("Enter a name for the template (without extension), then press Enter: ").strip()
+    if template_name.endswith('.png'):
+        template_name = template_name[:-4]
     os.makedirs(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH, exist_ok=True)
-    output_path = os.path.join(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH, file_name + ".png")
+    output_path = os.path.join(GENERAL_GUI_CONTROLLER_TEMPLATES_PATH, f"{template_name} - {screenshot_width}X{screenshot_height}.png")
     cv2.imwrite(output_path, cv2.cvtColor(cropped, cv2.COLOR_RGB2BGR))
     print(f"Saved cropped image to: {output_path}")
 
     if relative_x is None or relative_y is None:
-        templates_usage_syntax = f'detect_template_and_act(r"{file_name}")'
+        templates_usage_syntax = f'detect_template_and_act(r"{template_name}")'
     else:
-        templates_usage_syntax = f'detect_template_and_act(r"{file_name}", relative_position=({relative_x:.3f}, {relative_y:.3f}))'
+        templates_usage_syntax = f'detect_template_and_act(r"{template_name}", relative_position=({relative_x:.3f}, {relative_y:.3f}))'
     pyperclip.copy(templates_usage_syntax)
     print(templates_usage_syntax)
