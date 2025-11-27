@@ -7,12 +7,14 @@ from core.utils import wait_for_path_from_clipboard
 import winsound
 from local_config import PATH_DROPBOX, TAFNIT_USER_NAME, TAFNIT_PASSWORD
 
+
+
 pyautogui.FAILSAFE = False
 SHORT_SLEEP_TIME = 0.2
 MEDIUM_SLEEP_TIME = 1
 LONG_SLEEP_TIME = 4
 # %%
-# record_gui_template('tafnit - OK button for exists files one the server - 2560-1440')
+# record_gui_template('tafnit - mechir bematbea')
 
 # %%
 def load_tabular_data(path: str) -> pd.DataFrame:
@@ -78,7 +80,7 @@ def remove_vat(price):
     return np.ceil(price / 1.18 * 100) / 100 if isinstance(price, (int, float)) else None
 
 
-def parse_scientific_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, scientific: bool = True) -> pd.DataFrame:
+def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, scientific: bool = True) -> pd.DataFrame:
     # Check the file extension and load the file
 
     if scientific:
@@ -146,9 +148,7 @@ elif scientific_or_food_text.lower() == 'f':
 else:
     print("Invalid input. Please enter 's' for scientific or 'f' for food.")
     exit()
-# %%
-
-
+# %%  Tafnit login:
 detect_template_and_act('vpn - chrome icon', sleep_after_action=1)
 pyautogui.hotkey('ctrl', 't')
 
@@ -190,9 +190,9 @@ detect_template('ivrit - main')
 button_position = detect_template_and_act('sapak', click=True, sleep_before_detection=SHORT_SLEEP_TIME,
                                           sleep_after_action=SHORT_SLEEP_TIME)
 
-wait_for_template('tafnit - pirtei sochen.png')
+wait_for_template('tafnit - pirtei sochen')
 
-detect_template_and_act(input_template='tafnit - sochen', secondary_template='tafnit - open window button',
+detect_template_and_act(input_template='tafnit - pirtei sochen', secondary_template='tafnit - open window button',
                         secondary_template_direction='right'),
 
 wait_for_template('tafnit - external window toolbar')
@@ -209,41 +209,39 @@ nispachim_position = detect_template_and_act('nispachim', click=True, sleep_afte
 # %%
 sherutei_archive_position = detect_template_and_act('sherutei archive', click=True,
                                                     sleep_after_action=MEDIUM_SLEEP_TIME)
+
 teur_mismach_position = detect_template_and_act('teur mismach', relative_position=(0.1, 0.5), click=True,
                                                 sleep_after_action=SHORT_SLEEP_TIME, text_to_paste='quote')
 haalaa_lasharat_position = detect_template_and_act('haalaa lasharat', click=True)
-winsound.Beep(880, 500)
-repetitive_food_order = input("Do you want to use the repetitive food orders excel? (y/n)")
-repetitive_food_order = repetitive_food_order.lower() == 'y'
-bechar_kovets_position = detect_template_and_act('bechar kovets', click=True, sleep_after_action=SHORT_SLEEP_TIME)
-ask_continue = False
-if not scientific:
 
-    if repetitive_food_order:
-        quote_path = os.path.join(PATH_DROPBOX, r"Lab utilities\Tafnit\Food\Halil order.csv")
-        paste_value(quote_path)
-        sleep(SHORT_SLEEP_TIME)
-        pyautogui.press('enter')
-        sleep(SHORT_SLEEP_TIME)
-    else:
-        ask_continue = True
-else:
-    ask_continue = True
-if ask_continue:
+if scientific:
+    bechar_kovets_position = detect_template_and_act('bechar kovets', click=True, sleep_after_action=SHORT_SLEEP_TIME)
+    winsound.Beep(880, 500)
     continue_keyword = input(
         "Choose the quote from the list, go back here, and press enter to continue or s to stop and exit\n")
     if continue_keyword.lower() == 'e':
         exit()
-upload_warning = detect_template_and_act(r"tafnit - OK button for exists files one the server - 2560-1440",
+
+else:
+    winsound.Beep(880, 500)
+    repetitive_food_order = input("Do you want to use the repetitive food orders excel? (y/n)")
+    if repetitive_food_order.lower() == 'y':
+        quote_path = os.path.join(PATH_DROPBOX, r"Lab utilities\Tafnit\Food\Halil order.csv")
+    else:
+        quote_path = pick_file()
+    quote_path = quote_path.replace('/', '\\')
+    bechar_kovets_position = detect_template_and_act('bechar kovets', click=True, sleep_after_action=SHORT_SLEEP_TIME)
+    detect_template_and_act(r"tafnit - pick file File name", relative_position=(1.328, 0.423), text_to_paste=quote_path, sleep_after_action=SHORT_SLEEP_TIME)
+    pyautogui.press('enter')
+    sleep(1)
+
+upload_warning = detect_template_and_act(r"tafnit - OK button for exists files one the server",
                                          relative_position=(0.519, 0.353), click=True, sleep_before_detection=0.2,
                                          max_waiting_time_seconds=0.5)
-if upload_warning is not None:
-    winsound.Beep(880, 500)
-    input("There is already a file with this name on the server. Please handle the situation (rename/overwrite) manually, then come back here and press enter to continue")
+
 ishur_upload_position = detect_template_and_act('ishur - upload', relative_position=(0.8, 0.5), minimal_confidence=0.97,
-                                                click=True, sleep_before_detection=0.2, max_waiting_time_seconds=0.5)
+                                                click=True, sleep_before_detection=0.2, max_waiting_time_seconds=0.5, sleep_after_action=3)
 # %% Add Note
-sleep(3)
 detect_template_and_act('hearot', click=True, sleep_after_action=SHORT_SLEEP_TIME)
 
 if scientific:
@@ -259,7 +257,7 @@ else:
                                              secondary_template='tafnit - field right edge',
                                              secondary_template_direction='left', click=True,
                                              sleep_after_action=SHORT_SLEEP_TIME,
-                                             text_to_paste=f'נשמח להזמנה {s}-ל בשעה 12:30. שם איש קשר - מיכאל קלי. טלפון - 0545952783. מכון ויצמן, בניין פיזיקה, כניסה ראשית.')
+                                             text_to_paste=f'נשמח להזמנה {s}-ל בשעה 12:30. שם איש קשר - מיכאל קלי. טלפון - 0545952783. איש קשר נוסף: ניב: 0528028099. מכון ויצמן, בניין פיזיקה, כניסה ראשית.')
     winsound.Beep(880, 500)
     input("Put the actual date and contact details, then come back here and press enter to continue")
     pyautogui.click(notes_position)
@@ -274,7 +272,10 @@ else:
     sleep(3)
 
 # %%
-
+# DELETE THIS LINE:
+quote_path = os.path.join(PATH_DROPBOX, r"Lab utilities\Tafnit\Food\Halil order.csv")
+repetitive_food_order = True
+# %%
 category_1_position = detect_template_and_act('categories', relative_position=(-0.4, 0.85), click=True,
                                               sleep_after_action=SHORT_SLEEP_TIME)
 if scientific:
@@ -306,9 +307,9 @@ def paste_row_to_fields(row):
 
     teur_position = detect_template('teur', relative_position=(-1, 0.5))
 
-    kamut_position = detect_template('kamut', relative_position=(-1, 0.5))
+    kamut_position = detect_template(r"kamut", relative_position=(-1.838, 0.625))
 
-    mechir_bematbea_position = detect_template('mechir bematbea', relative_position=(-1, 0.5))
+    mechir_bematbea_position = detect_template_and_act(r"tafnit - mechir bematbea", relative_position=(-0.873, 0.588))
 
     print(row)
     pyautogui.click(teur_position)
@@ -366,37 +367,31 @@ def paste_row_to_fields(row):
 winsound.Beep(880, 500)
 rosh_electroptics_format = False
 if scientific:
-    winsound.Beep(880, 500)
-    rosh_electroptics_format = input("Copy the path to the csv containing the items to be ordered to your clipboard.\n"
-                            "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letters does not matter)\n"
-                            "There is no need to remove strings from the values. that is, No need to change '10 %' to 10 and '250.00 USD' to 250.\n"
-                            "Notice that in Excel you can choose Data -> Get Data -> From file -> From PDF to automaticall import tables from a PDF file to you excel.\n"
-                            "After copying, come back here and press here 'y' if it is Thorlabs format and 'n' if not (without quotes), and then press enter to continue")
+    rosh_electroptics_format = input("You will now be prompted to choose the csv/excel file containing the items to be ordered.\n"
+                                     "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letters does not matter)\n"
+                                     "There is no need to remove strings from the values. that is, No need to change '10 %' to 10 and '250.00 USD' to 250.\n"
+                                     "Notice that in Microsoft Excel you can choose Data -> Get Data -> From file -> From PDF to automaticall import tables from a PDF file to you excel.\n"
+                                     "Before choosing the file, please specify if the file is in rosh electroptics format (y/n): ")
     if rosh_electroptics_format.lower() == 'y':
         rosh_electroptics_format = True
     elif rosh_electroptics_format.lower() == 'n':
         rosh_electroptics_format = False
-        input(
-            )
     else:
         print("Invalid input. Please enter 'y' for Thorlabs format or 'n' for non-Thorlabs format.")
         exit()
 else:
-    input(
-        "Copy the path to the csv containing the items to be ordered to your clipboard. After copying\n"
-        "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letter does not matter)\n"
-        "After copying come back here and press enter to continue")
+    print(
+        "Choose the csv containing the items to be ordered to your clipboard.\n"
+        "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letter does not matter)\n")
 
 if not repetitive_food_order:
     print('Copy the path to the csv with the items details \n\n')
-    items_csv = wait_for_path_from_clipboard(filetype='csv')
+    items_csv = pick_file(filetypes=(("CSV files", "*.csv"), ("Excel files", "*.xlsx;*.xls")))
 else:
     items_csv = quote_path
 
 df = load_tabular_data(items_csv)
-df = parse_scientific_table(df,
-                            rosh_electroptics_format=rosh_electroptics_format,
-                            scientific=scientific)
+df = parse_quote_table(df, rosh_electroptics_format=rosh_electroptics_format, scientific=scientific)
 
 for _, sample_row in df.iterrows():
     paste_row_to_fields(sample_row)

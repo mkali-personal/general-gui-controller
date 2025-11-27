@@ -10,6 +10,23 @@ from pynput import keyboard
 from time import sleep
 from plyer import notification
 import time
+from tkinter import Tk, filedialog
+
+def pick_file(initialdir: str | None = None,
+              filetypes: tuple = (("All files", "*.*"),)):
+    """
+    Open native file dialog and return selected path ('' if canceled).
+    """
+    root = Tk()
+    root.withdraw()            # hide the empty root window
+    try:
+        path = filedialog.askopenfilename(initialdir=initialdir, filetypes=filetypes)
+        return path
+    finally:
+        root.destroy()
+
+# usage
+
 
 # Constants
 GENERAL_GUI_CONTROLLER_TEMPLATES_PATH = r"ggc-templates"
@@ -299,7 +316,7 @@ def detect_template(template: Union[str, list[str]],
                     secondary_template: Optional[Union[str, list[str]]] = None,
                     secondary_template_direction: Optional[str] = None,
                     relative_position: Optional[Tuple[float, float]] = None,
-                    minimal_confidence: float = 0.99,
+                    minimal_confidence: float = 0.95,
                     exception_if_not_found: bool = False,
                     warn_if_not_found: bool = True,
                     grayscale_mode: bool = True,
@@ -416,7 +433,7 @@ def detect_template_and_act(
         secondary_template: Optional[Union[str, list[str]]] = None,
         secondary_template_direction: Optional[str] = None,
         relative_position: Optional[Tuple[float, float]] = None,
-        minimal_confidence: float = 0.99,
+        minimal_confidence: float = 0.95,
         exception_if_not_found: bool = False,
         warn_if_not_found: bool = True,
         place_cursor: bool = True,
@@ -599,7 +616,7 @@ def detect_complex_template(
     direction = direction.lower()
     assert direction in {'up', 'down', 'left', 'right'}, "direction must be one of: 'up', 'down', 'left', 'right'"
 
-    minimal_confidence = kwargs.get('minimal_confidence', 0.99)
+    minimal_confidence = kwargs.get('minimal_confidence', 0.95)
     exception_if_not_found = kwargs.get('exception_if_not_found', False)
     warn_if_not_found = kwargs.get('warn_if_not_found', True)
     relative_position_b = kwargs.get('relative_position', None)

@@ -3,7 +3,7 @@ from core.general_gui_controller import *
 equations_path = r"C:\Users\michaeka\Weizmann Institute Dropbox\Michael Kali\Labs Dropbox\Laser Phase Plate\Designs\Optomechanics\Parts\equations.txt"
 SHORT_SLEEP = 0.1
 # %%
-# record_gui_template('solidworks - link to external file checkbox - 256X1440')
+# record_gui_template('solidworks - invalid parameter warning sign')
 
 # %%
 detect_template_and_act(r"solidworks - search bar", relative_position=(0, 0), sleep_after_action=SHORT_SLEEP,
@@ -32,8 +32,13 @@ else:
     sleep(SHORT_SLEEP)
     pyautogui.press('enter')
     sleep(SHORT_SLEEP)
+    detect_template_and_act(r"solidworks - link button", relative_position=(0.548, 0.592), sleep_after_action=SHORT_SLEEP)
 
-detect_template_and_act(r"solidworks - link button", relative_position=(0.548, 0.592), sleep_after_action=SHORT_SLEEP)
+while True:
+    warning_sign = detect_template_and_act(r"solidworks - invalid parameter warning sign", relative_position=(1.533, -0.658), max_waiting_time_seconds=2)
+    if warning_sign is None:
+        break
+
 wait_for_template_to_disappear("solidworks - link button")
 sleep(2)
 detect_template_and_act(r"solidworks - link to external file checkbox", relative_position=(-0.089, 0.583), sleep_after_action=1)
