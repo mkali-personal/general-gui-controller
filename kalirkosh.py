@@ -22,7 +22,12 @@ def load_tabular_data(path: str) -> pd.DataFrame:
 
     # Case 1: CSV file
     if lower_path.endswith(".csv"):
-        return pd.read_csv(path)
+        try:
+            df = pd.read_csv(path)
+        except UnicodeDecodeError:
+            winsound.Beep(440, 1000)
+            input("The file you are trying to load contains invalid characters. try to save it as UTF-8 encoded CSV and restart the program.")
+        return df
 
     # Case 2: Excel file
     elif lower_path.endswith((".xlsx", ".xls")):
@@ -46,6 +51,7 @@ def load_tabular_data(path: str) -> pd.DataFrame:
 
     # Unsupported format
     raise ValueError(f"[ERROR] Unsupported file format: {path}")
+
 
 
 def clean_number(x):
@@ -126,7 +132,6 @@ def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, 
         df['quantity'] = df['quantity'].apply(clean_number)
 
         return df
-#
 #
 # record_gui_template()
 winsound.Beep(880, 500)
