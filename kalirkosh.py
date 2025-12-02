@@ -1,14 +1,11 @@
-import pyautogui
-
 from core.general_gui_controller import *
 import pandas as pd
 import re
-from core.utils import wait_for_path_from_clipboard
 import winsound
-from local_config import PATH_DROPBOX, TAFNIT_USER_NAME, TAFNIT_PASSWORD
+from local_config import TAFNIT_USER_NAME, TAFNIT_PASSWORD, REPETETIV_FOOD_ORDER_PATH
 
 
-
+TAFNIT_URL = r"https://tafnit.weizmann.ac.il/MENU1/LOGINNoD.CSP"
 pyautogui.FAILSAFE = False
 SHORT_SLEEP_TIME = 0.2
 MEDIUM_SLEEP_TIME = 1
@@ -152,7 +149,7 @@ else:
 detect_template_and_act('vpn - chrome icon', sleep_after_action=1)
 pyautogui.hotkey('ctrl', 't')
 
-paste_value(value=r"https://tafnit.weizmann.ac.il/MENU1/LOGINNoD.CSP")
+paste_value(value=TAFNIT_URL)
 pyautogui.press('enter')
 detect_template('tafnit - login screen finished loading',
                 max_waiting_time_seconds=np.inf)
@@ -226,7 +223,7 @@ else:
     winsound.Beep(880, 500)
     repetitive_food_order = input("Do you want to use the repetitive food orders excel? (y/n)")
     if repetitive_food_order.lower() == 'y':
-        quote_path = os.path.join(PATH_DROPBOX, r"Lab utilities\Tafnit\Food\Halil order.csv")
+        quote_path = REPETETIV_FOOD_ORDER_PATH
     else:
         quote_path = pick_file()
     quote_path = quote_path.replace('/', '\\')
@@ -264,17 +261,10 @@ else:
     pyautogui.hotkey('ctrl', 'a')
     pyautogui.hotkey('ctrl', 'c')
     pritim_position = detect_template_and_act('pritim', click=True, sleep_after_action=MEDIUM_SLEEP_TIME)
-    sleep(3)
     detect_template_and_act(input_template='pritim - hearot', secondary_template='tafnit - field right edge',
                             secondary_template_direction='left', click=True, sleep_after_action=SHORT_SLEEP_TIME)
-    sleep(3)
     pyautogui.hotkey('ctrl', 'v')
-    sleep(3)
 
-# %%
-# DELETE THIS LINE:
-quote_path = os.path.join(PATH_DROPBOX, r"Lab utilities\Tafnit\Food\Halil order.csv")
-repetitive_food_order = True
 # %%
 category_1_position = detect_template_and_act('categories', relative_position=(-0.4, 0.85), click=True,
                                               sleep_after_action=SHORT_SLEEP_TIME)
@@ -364,9 +354,9 @@ def paste_row_to_fields(row):
                                 warn_if_not_found=False, click=True, max_waiting_time_seconds=0)
 
 
-winsound.Beep(880, 500)
 rosh_electroptics_format = False
 if scientific:
+    winsound.Beep(880, 500)
     rosh_electroptics_format = input("You will now be prompted to choose the csv/excel file containing the items to be ordered.\n"
                                      "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letters does not matter)\n"
                                      "There is no need to remove strings from the values. that is, No need to change '10 %' to 10 and '250.00 USD' to 250.\n"
@@ -379,16 +369,10 @@ if scientific:
     else:
         print("Invalid input. Please enter 'y' for Thorlabs format or 'n' for non-Thorlabs format.")
         exit()
-else:
-    print(
-        "Choose the csv containing the items to be ordered to your clipboard.\n"
-        "make sure the file has the following columns: ['id', 'description', 'quantity', 'price', 'discount'] (Capitalization of letter does not matter)\n")
-
-if not repetitive_food_order:
-    print('Copy the path to the csv with the items details \n\n')
     items_csv = pick_file(filetypes=(("CSV files", "*.csv"), ("Excel files", "*.xlsx;*.xls")))
 else:
     items_csv = quote_path
+
 
 df = load_tabular_data(items_csv)
 df = parse_quote_table(df, rosh_electroptics_format=rosh_electroptics_format, scientific=scientific)
