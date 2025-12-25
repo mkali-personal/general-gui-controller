@@ -109,6 +109,8 @@ def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, 
         df['discount'] = df['discount'].apply(clean_number)
         df['discount'] = df['discount'].apply(lambda x: 0 if x is None else x * 100 if x < 1 else x)
         df['quantity'] = df['quantity'].apply(clean_number)
+        # Remove disabled items (rows where 'quantity' = 0):
+        df = df[df['quantity'] != 0]
         df['price'] = df['price'].apply(clean_number)
         df['id'] = df['id'].apply(clean_text)
         df['description'] = df['description'].apply(clean_text)
@@ -130,9 +132,12 @@ def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, 
 
         df['price'] = df['price'].apply(remove_vat)
         df['quantity'] = df['quantity'].apply(clean_number)
+        df = df[df['quantity'] != 0]
 
         return df
 #
+
+
 # record_gui_template()
 winsound.Beep(880, 500)
 input("got to the TAFNIT main window, and make sure it is maximized on your main screen (where the notification is).\n"
