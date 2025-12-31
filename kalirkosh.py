@@ -120,7 +120,7 @@ def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, 
         df = df.loc[:df.last_valid_index()]
         return df[required_columns]
     else:
-        required_columns = ['description', 'quantity', 'price']
+        required_columns = ['description', 'quantity', 'price', 'note']
 
         # Normalize column names to lowercase for matching
         df.columns = df.columns.str.lower()
@@ -311,6 +311,9 @@ def paste_row_to_fields(row):
 
     mechir_bematbea_position = detect_template_and_act(r"tafnit - mechir bematbea", relative_position=(-0.873, 0.588))
 
+    note_position = detect_template(template='pritim - hearot', secondary_template='tafnit - field right edge',
+                                    secondary_template_direction='left')
+
     print(row)
     pyautogui.click(teur_position)
     sleep(SHORT_SLEEP_TIME)
@@ -321,6 +324,11 @@ def paste_row_to_fields(row):
     paste_value(row['quantity'], kamut_position)
     sleep(SHORT_SLEEP_TIME)
     paste_value(row['price'], mechir_bematbea_position)
+    # if there is a field row['note'], paste it to the note_position:
+    sleep(SHORT_SLEEP_TIME)
+    if not scientific and 'note' in row and pd.notna(row['note']):
+        paste_value(row['note'], note_position)
+        sleep(SHORT_SLEEP_TIME)
 
     if scientific:
         detect_template_and_act('makat_sapak', relative_position=(-0.945, 0.542), sleep_after_action=SHORT_SLEEP_TIME,
