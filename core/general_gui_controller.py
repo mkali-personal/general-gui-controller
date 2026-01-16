@@ -276,6 +276,7 @@ def detect_single_template(
 
     screenshot = take_screenshot(screenshot=screenshot, grayscale_mode=grayscale_mode)
 
+
     tH, tW = template.shape[:2]
 
     if tH > screenshot.shape[0] or tW > screenshot.shape[1]:
@@ -754,7 +755,7 @@ def paste_value(value: Optional[str], location=None, click=True, delete_existing
     pyperclip.copy(original_clipboard)
 
 
-def record_gui_template(template_name: Optional[str] = None):
+def record_gui_template(template_name: Optional[str] = None, show_results: bool = True):
     """
     Record a GUI template by capturing a screen region and computing its position.
     Steps:
@@ -791,11 +792,18 @@ def record_gui_template(template_name: Optional[str] = None):
 
     # Step 3: Crop and save
     cropped = screenshot[top:bottom, left:right]
+    if show_results:
+        from matplotlib import use
+        use('tkagg')
+        import matplotlib.pyplot as plt
+        print(f"{left=}, {top=}, {right=}, {bottom=}, {width=}, {height=}")
+        plt.imshow(cropped)
+        plt.show()
 
     # Step 4: Record target position
-    target_screen = get_cursor_position("Place the cursor at the TARGET DESTINATION and press Left Ctrl.")
-    if target_screen is not None:
-        tx, ty = target_screen[0], target_screen[1]
+    target_point = get_cursor_position("Place the cursor at the TARGET DESTINATION and press Left Ctrl.")
+    if target_point is not None:
+        tx, ty = target_point[0], target_point[1]
         # Step 5: Compute relative position to bottom-left of cropped box
         relative_x = (tx - left) / width
         relative_y = (bottom - ty) / height  # Inverted Y axis

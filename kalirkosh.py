@@ -53,7 +53,6 @@ def load_tabular_data(path: str) -> pd.DataFrame:
     raise ValueError(f"[ERROR] Unsupported file format: {path}")
 
 
-
 def clean_number(x):
     if isinstance(x, str):
         # Remove commas before extracting numbers
