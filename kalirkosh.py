@@ -1,3 +1,13 @@
+import pyautogui
+import sys
+import traceback
+
+def exception_handler(exc_type, exc_value, exc_traceback):
+    traceback.print_exception(exc_type, exc_value, exc_traceback)
+    input("\nPress Enter to exit...")
+
+sys.excepthook = exception_handler
+
 from core.general_gui_controller import *
 import pandas as pd
 import re
@@ -14,6 +24,7 @@ LONG_SLEEP_TIME = 4
 # record_gui_template('tafnit - mechir bematbea')
 
 # %%
+
 def load_tabular_data(path: str) -> pd.DataFrame:
     if not os.path.isfile(path):
         raise FileNotFoundError(f"[ERROR] File does not exist: {path}")
@@ -108,12 +119,12 @@ def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, 
         df['discount'] = df['discount'].apply(clean_number)
         df['discount'] = df['discount'].apply(lambda x: 0 if x is None else x * 100 if x < 1 else x)
         df['quantity'] = df['quantity'].apply(clean_number)
-        # Remove disabled items (rows where 'quantity' = 0):
-        df = df[df['quantity'] != 0]
+        # Remove disabled items (rows where 'quantity' = 0 or is NaN):
+        df = df[df['quantity'].notna() & (df['quantity'] != 0)]
         df['price'] = df['price'].apply(clean_number)
         df['id'] = df['id'].apply(clean_text)
         df['description'] = df['description'].apply(clean_text)
-        df['description'].fillna('.', inplace=True)
+        df['description'] = df['description'].fillna('.', inplace=True)
 
         # Select and return only the required columns
         df = df.loc[:df.last_valid_index()]
@@ -247,6 +258,8 @@ upload_warning = detect_template_and_act(r"tafnit - OK button for exists files o
 
 ishur_upload_position = detect_template_and_act('ishur - upload', relative_position=(0.8, 0.5), minimal_confidence=0.97,
                                                 click=True, sleep_before_detection=0.2, max_waiting_time_seconds=0.5, sleep_after_action=3)
+
+
 # %% Add Note
 detect_template_and_act('hearot', click=True, sleep_after_action=SHORT_SLEEP_TIME)
 
@@ -386,7 +399,7 @@ if scientific:
     else:
         print("Invalid input. Please enter 'y' for Thorlabs format or 'n' for non-Thorlabs format.")
         exit()
-    items_csv = pick_file(filetypes=(("CSV files", "*.csv"), ("Excel files", "*.xlsx;*.xls")))
+    items_csv = pick_file(filetypes=("CSV and Excel", ("*.csv", "*.xls", "*.xlsx")))
 else:
     items_csv = quote_path
 
@@ -397,6 +410,30 @@ df = parse_quote_table(df, rosh_electroptics_format=rosh_electroptics_format, sc
 for _, sample_row in df.iterrows():
     paste_row_to_fields(sample_row)
     sleep(LONG_SLEEP_TIME)
+
+# %%
+scientific=True
+if scientific:
+    winsound.Beep(880, 500)
+    continue_keyword = input("Would you like to save and continue? press y to save and continue, or n to exit without saving.\n")
+    if continue_keyword.lower() == 'n':
+        exit()
+    detect_template_and_act(r"tafnit - save", sleep_after_action=SHORT_SLEEP_TIME)
+    save_warning = detect_template(r"tafnit - save warning", max_waiting_time_seconds=2)
+    if save_warning is not None:
+        input("There is a warning when trying to save. please check the Tafnit window, fix the problem, and then come back here and press enter to continue.")
+    detect_template_and_act('nispachim', click=True, sleep_after_action=SHORT_SLEEP_TIME)
+    detect_template_and_act("tafnit - customs button", click=True, sleep_after_action=2)
+    tofes_yadani_position = detect_template_and_act(r"tafnit - tofes yadani button")
+    paste_value("optics equipment")
+    detect_template_and_act(r"tafnit - items usage", secondary_template=r"tafnit - left boundary items usage", secondary_template_direction='left', relative_position=(-1.000, 0.400))
+    paste_value("Will be used to run optics experiments in the physics department. non-military usage")
+    # Scroll down a few times to make sure everything is visible:
+    pyautogui.scroll(-300)
+    detect_template_and_act(r"tafnit - customs - confirm")
+
+
+
 
 winsound.Beep(880, 500)
 sleep(MEDIUM_SLEEP_TIME)
