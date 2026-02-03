@@ -116,8 +116,8 @@ def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, 
                 df[col] = None
 
         # Clean the columns
-        df['discount'] = df['discount'].apply(clean_number)
-        df['discount'] = df['discount'].apply(lambda x: 0 if x is None else x * 100 if x < 1 else x)
+        df.loc[:, 'discount'] = df['discount'].apply(clean_number)
+        df.loc[:, 'discount'] = df['discount'].apply(lambda x: 0 if x is None else x * 100 if x < 1 else x)
         df['quantity'] = df['quantity'].apply(clean_number)
         # Remove disabled items (rows where 'quantity' = 0 or is NaN):
         df = df[df['quantity'].notna() & (df['quantity'] != 0)]
@@ -130,7 +130,7 @@ def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, 
         df = df.loc[:df.last_valid_index()]
         return df[required_columns]
     else:
-        required_columns = ['description', 'quantity', 'price', 'note']
+        required_columns = ['description', 'quantity', 'price', 'note', 'discount']
 
         # Normalize column names to lowercase for matching
         df.columns = df.columns.str.lower()
@@ -143,10 +143,13 @@ def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, 
         df['price'] = df['price'].apply(remove_vat)
         df['quantity'] = df['quantity'].apply(clean_number)
         df = df[df['quantity'] != 0]
+        df.loc[:, 'discount'] = df['discount'].apply(clean_number)
+        df.loc[:, 'discount'] = df['discount'].apply(lambda x: 0 if x is None else x * 100 if x < 1 else x)
 
         return df
 #
-
+df = pd.read_csv(r"C:\Users\michaeka\Weizmann Institute Dropbox\Michael Kali\Labs Dropbox\Lab utilities\Tafnit\Food\Halil order.csv")
+parse_quote_table(df=df, rosh_electroptics_format=False, scientific=False)
 
 # record_gui_template()
 winsound.Beep(880, 500)
@@ -338,6 +341,9 @@ def paste_row_to_fields(row):
     paste_value(row['price'], mechir_bematbea_position)
     # if there is a field row['note'], paste it to the note_position:
     sleep(SHORT_SLEEP_TIME)
+    if row['discount'] is not None and row['discount'] != 0:
+        detect_template_and_act('hanacha', relative_position=(-0.5, 0.5), sleep_after_action=SHORT_SLEEP_TIME,
+                                text_to_paste=row['discount'])
     if not scientific and 'note' in row and pd.notna(row['note']):
         paste_value(row['note'], note_position)
         sleep(SHORT_SLEEP_TIME)
@@ -345,8 +351,6 @@ def paste_row_to_fields(row):
     if scientific:
         detect_template_and_act('makat_sapak', relative_position=(-0.945, 0.542), sleep_after_action=SHORT_SLEEP_TIME,
                                 text_to_paste=row['id'])
-        detect_template_and_act('hanacha', relative_position=(-0.5, 0.5), sleep_after_action=SHORT_SLEEP_TIME,
-                                text_to_paste=row['discount'])
         pyautogui.click(category_1_position)
         sleep(SHORT_SLEEP_TIME)
         pyautogui.click(category_1_choice_position)
