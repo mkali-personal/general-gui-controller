@@ -106,47 +106,46 @@ def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, 
             df[['id', 'description']] = df['Part Number and Description'].str.split('\n', n=1, expand=True)
             # rename the column "unit price" to "price":
             df.rename(columns={'Unit Price': 'price'}, inplace=True)
+    else:
+        required_columns = ['description', 'quantity', 'price', 'note', 'discount']
+    # Normalize column names to lowercase for matching
+    df.columns = df.columns.str.lower()
 
-        # Normalize column names to lowercase for matching
-        df.columns = df.columns.str.lower()
+    # Allow `name` as a fallback source for `description`.
+    if 'description' not in df.columns:
+        if 'name' in df.columns:
+            df.rename(columns={'name': 'description'}, inplace=True)
+        else:
+            raise ValueError("[ERROR] Missing required column: expected 'description' or 'name'.")
 
-        # Ensure all required columns exist, adding missing columns as empty
-        for col in required_columns:
-            if col not in df.columns:
-                df[col] = None
+    # Ensure all required columns exist, adding missing columns as empty
+    for col in required_columns:
+        if col not in df.columns:
+            df[col] = None
 
+    df['price'] = df['price'].apply(clean_number)
+
+    if scientific:
         # Clean the columns
-        df.loc[:, 'discount'] = df['discount'].apply(clean_number)
-        df.loc[:, 'discount'] = df['discount'].apply(lambda x: 0 if x is None else x * 100 if x < 1 else x)
-        df['quantity'] = df['quantity'].apply(clean_number)
         # Remove disabled items (rows where 'quantity' = 0 or is NaN):
-        df = df[df['quantity'].notna() & (df['quantity'] != 0)]
-        df['price'] = df['price'].apply(clean_number)
+
         df['id'] = df['id'].apply(clean_text)
         df['description'] = df['description'].apply(clean_text)
         df['description'] = df['description'].fillna('.', inplace=True)
-
         # Select and return only the required columns
         df = df.loc[:df.last_valid_index()]
-        return df[required_columns]
+        df = df[required_columns]
+
     else:
-        required_columns = ['description', 'quantity', 'price', 'note', 'discount']
-
-        # Normalize column names to lowercase for matching
-        df.columns = df.columns.str.lower()
-
-        # Ensure all required columns exist, adding missing columns as empty
-        for col in required_columns:
-            if col not in df.columns:
-                df[col] = None
-
         df['price'] = df['price'].apply(remove_vat)
-        df['quantity'] = df['quantity'].apply(clean_number)
-        df = df[df['quantity'] != 0]
-        df.loc[:, 'discount'] = df['discount'].apply(clean_number)
-        df.loc[:, 'discount'] = df['discount'].apply(lambda x: 0 if x is None else x * 100 if x < 1 else x)
 
-        return df
+    # Remove rows where df['description'].lower = 'total' or 'delete_me':
+    df.loc[:, 'discount'] = df['discount'].apply(clean_number)
+    df.loc[:, 'discount'] = df['discount'].apply(lambda x: 0 if x is None else x * 100 if x < 1 else x)
+    df = df[~df['description'].str.lower().isin(['total', 'delete_me'])]
+    df = df[df['quantity'].notna() & (df['quantity'] != 0)]
+    df['quantity'] = df['quantity'].apply(clean_number)
+    return df
 #
 df = pd.read_csv(r"C:\Users\michaeka\Weizmann Institute Dropbox\Michael Kali\Labs Dropbox\Lab utilities\Tafnit\Food\Halil order.csv")
 parse_quote_table(df=df, rosh_electroptics_format=False, scientific=False)
@@ -338,12 +337,12 @@ def paste_row_to_fields(row):
     sleep(SHORT_SLEEP_TIME)
     paste_value(row['quantity'], kamut_position)
     sleep(SHORT_SLEEP_TIME)
-    paste_value(row['price'], mechir_bematbea_position)
+    paste_value(f"{row['price']:.2f}", mechir_bematbea_position)
     # if there is a field row['note'], paste it to the note_position:
     sleep(SHORT_SLEEP_TIME)
     if row['discount'] is not None and row['discount'] != 0:
         detect_template_and_act('hanacha', relative_position=(-0.5, 0.5), sleep_after_action=SHORT_SLEEP_TIME,
-                                text_to_paste=row['discount'])
+                                text_to_paste=int(np.round(row['discount'])))
     if not scientific and 'note' in row and pd.notna(row['note']):
         paste_value(row['note'], note_position)
         sleep(SHORT_SLEEP_TIME)
