@@ -8,9 +8,9 @@ from datetime import datetime
 
 
 def wait_for_path_from_clipboard(filetype: Optional[str] = None, poll_interval=0.5, verbose=True,
-                                 instructions_message=None):
+                                 instructions_message="Waiting for a file path to be copied to clipboard..."):
     if instructions_message is not None:
-        print(instructions_message + '\n')
+        print("\n" + instructions_message + '\n')
 
     I = 0
     while True:
