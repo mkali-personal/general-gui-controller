@@ -1,13 +1,13 @@
 import os
 import time
-from typing import Optional
+from typing import Optional, Sequence, Union
 import cv2
 import pyperclip
 from PIL import ImageGrab
 from datetime import datetime
 
 
-def wait_for_path_from_clipboard(filetype: Optional[str] = None, poll_interval=0.5, verbose=True,
+def wait_for_path_from_clipboard(filetype: Optional[Union[str, Sequence[str]]] = None, poll_interval=0.5, verbose=True,
                                  instructions_message="Waiting for a file path to be copied to clipboard..."):
     if instructions_message is not None:
         print("\n" + instructions_message + '\n')
@@ -17,7 +17,11 @@ def wait_for_path_from_clipboard(filetype: Optional[str] = None, poll_interval=0
         clipboard = pyperclip.paste().strip().strip('"')  # Strip whitespace and quotes
 
         if os.path.isfile(clipboard) or os.path.isdir(clipboard):
-            filetype_lower = filetype.lower() if filetype else None
+            # `filetype` may be a single extension/keyword or a sequence of
+            # acceptable extensions (e.g. ('csv', 'psdata')). The keyword
+            # branches below only apply to the single-string form.
+            filetype_is_str = isinstance(filetype, str)
+            filetype_lower = filetype.lower() if filetype_is_str else None
 
             if filetype_lower in ['video', 'media']:
                 # Try to open as a video
@@ -56,9 +60,10 @@ def wait_for_path_from_clipboard(filetype: Optional[str] = None, poll_interval=0
                     return clipboard
 
             if filetype is not None:
-                if clipboard.endswith(f'.{filetype_lower}'):
+                extensions = [filetype_lower] if filetype_is_str else [ft.lower() for ft in filetype]
+                if any(clipboard.lower().endswith(f'.{ext}') for ext in extensions):
                     if verbose:
-                        print(f"✔ Detected valid CSV path: {clipboard}")
+                        print(f"✔ Detected valid path: {clipboard}")
                     return clipboard
 
             if filetype is None:
