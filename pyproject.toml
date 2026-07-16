@@ -1,0 +1,23 @@
+[project]
+name = "automations"
+version = "0.1.0"
+description = "GUI automation scripts based on image recognition and voice commands"
+requires-python = ">=3.11"
+dependencies = [
+    "sounddevice==0.5.1",
+    "vosk==0.3.45",
+    "plyer==2.1.0",
+    "pandas==2.2.2",
+    "opencv-python==4.12.0.88",
+    "pyperclip==1.9.0",
+    "Pillow==11.2.1",
+    "numpy",
+    "pyautogui",
+    "pynput",
+    "keyboard",
+    "matplotlib",
+]
+
+[tool.uv]
+# This project is a collection of scripts, not an installable package.
+package = false

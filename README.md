@@ -1,4 +1,29 @@
 # General GUI controller
+
+## Installation (with uv)
+The project is managed with [uv](https://docs.astral.sh/uv/) — a fast Python package and environment manager that replaces pip + venv. Dependencies are declared in `pyproject.toml` and pinned exactly in `uv.lock`, so every machine gets the same environment.
+
+1. **Install uv** (one time, no Python required beforehand):
+   ```powershell
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+   ```
+   (On Linux/macOS: `curl -LsSf https://astral.sh/uv/install.sh | sh`)
+
+2. **Create the virtual environment and install everything**, from the project root:
+   ```powershell
+   uv sync
+   ```
+   This single command reads `.python-version` (Python 3.11), downloads that Python if it's missing, creates `.venv/`, and installs all locked dependencies. It typically takes seconds thanks to uv's global cache.
+
+3. **Run scripts** through the environment (no manual activation needed):
+   ```powershell
+   uv run kalirkosh.py
+   ```
+   Or activate the venv classically: `.venv\Scripts\activate` (Windows) / `source .venv/bin/activate` (Linux/macOS) and use `python` as usual.
+
+**Adding/updating a dependency:** `uv add <package>` (updates `pyproject.toml` and `uv.lock` automatically). After pulling changes that touch the lockfile, just run `uv sync` again.
+
+
 The module uses simple image recognition (cv2.matchTemplate) to find the location of a given image on the screen, and act on it (click, type, paste, etc...). It can be used to automate tasks by locating buttons or other UI elements in applications.
 OCR was used but didn't perform well, so it was deprecated.
 Since it uses image recognition, it can handle any application, not just web browsers.

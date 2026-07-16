@@ -1,4 +1,7 @@
 .idea/
+.venv/
 playground.py
 local_config.py
 __pycache__/
+models/
+voice_command_log.txt
