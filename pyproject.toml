@@ -16,6 +16,7 @@ dependencies = [
     "pynput",
     "keyboard",
     "matplotlib",
+    "openpyxl>=3.1.5",
 ]
 
 [tool.uv]

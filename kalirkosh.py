@@ -96,13 +96,14 @@ def remove_vat(price):
 def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, scientific: bool = True) -> pd.DataFrame:
     # Check the file extension and load the file
 
+    df = df.copy()
     if scientific:
         # Define the target columns in lowercase
         required_columns = ['id', 'description', 'quantity', 'price', 'discount']
         if rosh_electroptics_format:
             # remove the last line of the dataframe if it's Ln value is nan:
             if df.iloc[-1]['Quantity'] == 'TOTAL':
-                df = df.iloc[:-1]
+                df = df.iloc[:-1].copy()
             df[['id', 'description']] = df['Part Number and Description'].str.split('\n', n=1, expand=True)
             # rename the column "unit price" to "price":
             df.rename(columns={'Unit Price': 'price'}, inplace=True)
@@ -131,7 +132,7 @@ def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, 
 
         df['id'] = df['id'].apply(clean_text)
         df['description'] = df['description'].apply(clean_text)
-        df['description'] = df['description'].fillna('.', inplace=True)
+        df['description'] = df['description'].fillna('.')
         # Select and return only the required columns
         df = df.loc[:df.last_valid_index()]
         df = df[required_columns]
@@ -140,10 +141,10 @@ def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, 
         df['price'] = df['price'].apply(remove_vat)
 
     # Remove rows where df['description'].lower = 'total' or 'delete_me':
-    df.loc[:, 'discount'] = df['discount'].apply(clean_number)
-    df.loc[:, 'discount'] = df['discount'].apply(lambda x: 0 if x is None else x * 100 if x < 1 else x)
+    df['discount'] = df['discount'].apply(clean_number)
+    df['discount'] = df['discount'].apply(lambda x: 0 if x is None else x * 100 if x < 1 else x)
     df = df[~df['description'].str.lower().isin(['total', 'delete_me'])]
-    df = df[df['quantity'].notna() & (df['quantity'] != 0)]
+    df = df[df['quantity'].notna() & (df['quantity'] != 0)].copy()
     df['quantity'] = df['quantity'].apply(clean_number)
     return df
 #
@@ -359,9 +360,10 @@ def paste_row_to_fields(row):
         pyautogui.click(category_2_choice_position)
         sleep(SHORT_SLEEP_TIME)
         detect_template_and_act('adken shura', click=True)
-        info = detect_template_and_act('tafnit - info warning icon', click=True, max_waiting_time_seconds=0.1)
+        info = detect_template_and_act('tafnit - info warning icon', click=False, max_waiting_time_seconds=0.1)
         if info is not None:
-            detect_template_and_act('tafnit - info warning icon - approve', click=True)
+            # detect_template_and_act('tafnit - info warning icon - approve', click=False)
+            input("A warning has popped. Approve it, finish this item's form manually, confirm, and press here Enter to continue")
     else:
         pyautogui.click(category_1_position)
         sleep(SHORT_SLEEP_TIME)
@@ -402,7 +404,7 @@ if scientific:
     else:
         print("Invalid input. Please enter 'y' for Thorlabs format or 'n' for non-Thorlabs format.")
         exit()
-    items_csv = pick_file(filetypes=("CSV and Excel", ("*.csv", "*.xls", "*.xlsx")))
+    items_csv = pick_file(filetypes=(("CSV and Excel", "*.csv *.xls *.xlsx"),))
 else:
     items_csv = quote_path
 
