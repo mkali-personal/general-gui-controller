@@ -152,6 +152,7 @@ df = pd.read_csv(r"C:\Users\michaeka\Weizmann Institute Dropbox\Michael Kali\Lab
 parse_quote_table(df=df, rosh_electroptics_format=False, scientific=False)
 
 # record_gui_template()
+notify_main_screen()
 winsound.Beep(880, 500)
 input("got to the TAFNIT main window, and make sure it is maximized on your main screen (where the notification is).\n"
       "When you will need to choose supplier or a quote file in Tafnit, the script will wait for you to choose it,\n"
