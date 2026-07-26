@@ -250,6 +250,7 @@ def detect_single_template(
         grayscale_mode: bool = True,
         multiple_matches_sorter: Optional[Union[Callable, np.ndarray]] = None,
         multiple_matches_tolerance: float = DEFAULT_MULTIPLE_MATCHES_TOLERANCE,
+        _debug_sink: list | None = None,
 ) -> tuple[float, float] | None:
     """Match a single template against one screenshot (no retry loop).
 
@@ -259,6 +260,11 @@ def detect_single_template(
     sort key over (x, y) click positions, or a direction vector (np.ndarray) -
     the match furthest along that direction wins (screen y-axis pointing up).
     Otherwise the single best-scoring match is returned.
+
+    `_debug_sink`: internal hook used by detect_template's `debug` feature. If a
+    list is passed, a {screenshot, template, result, score, position} dict is
+    appended to it whenever a raw match is computed (only for the plain, non
+    secondary_template path - compound matches are not captured).
     """
     if (secondary_template is None) != (secondary_template_direction is None):
         raise ValueError("If secondary_template is provided, "
@@ -291,6 +297,14 @@ def detect_single_template(
 
     result = cv2.matchTemplate(screenshot, template, cv2.TM_CCOEFF_NORMED)
     _, max_val, _, max_loc = cv2.minMaxLoc(result)
+    if _debug_sink is not None:
+        _debug_sink.append({
+            "screenshot": screenshot,
+            "template": template,
+            "result": result,
+            "score": max_val,
+            "position": max_loc,
+        })
     if max_val < minimal_confidence:
         return _handle_not_found(f"[ERROR] Best match score {max_val:.3f} is below "
                                  f"minimal_confidence {minimal_confidence:.3f}.",
@@ -306,6 +320,57 @@ def detect_single_template(
     return min(candidate_points, key=multiple_matches_sorter)
 
 
+def _resolve_debug_mode(debug: bool | str | float) -> tuple[str | None, float | None]:
+    """Normalize detect_template's `debug` argument into (mode, threshold_seconds).
+
+    mode is one of: None (disabled), 'always', 'last', 'after_seconds'.
+    """
+    if isinstance(debug, bool):
+        return ('always', None) if debug else (None, None)
+    if debug == 'last':
+        return 'last', None
+    if isinstance(debug, (int, float)):
+        return 'after_seconds', float(debug)
+    raise ValueError("debug must be False, True, 'last', or a number of seconds.")
+
+
+def _show_match_debug_figure(entry: dict, title: str) -> None:
+    """Blocking matplotlib figure: screenshot (best match boxed), template, correlation map."""
+    from matplotlib import use
+    use('tkagg')
+    import matplotlib.pyplot as plt
+
+    screenshot, template, result, score, position = (
+        entry["screenshot"], entry["template"], entry["result"], entry["score"], entry["position"])
+
+    fig, (ax_screen, ax_template, ax_matched, ax_result) = plt.subplots(1, 4, figsize=(19, 5))
+
+    h, w = template.shape[:2]
+    x, y = position
+    matched_crop = screenshot[y:y + h, x:x + w]
+
+    ax_screen.imshow(screenshot, cmap='gray' if screenshot.ndim == 2 else None)
+    ax_screen.add_patch(plt.Rectangle((x, y), w, h, edgecolor='red', facecolor='none', linewidth=2))
+    ax_screen.set_title("Screenshot (best match boxed)")
+    ax_screen.axis('off')
+
+    ax_template.imshow(template, cmap='gray' if template.ndim == 2 else None)
+    ax_template.set_title("Template")
+    ax_template.axis('off')
+
+    ax_matched.imshow(matched_crop, cmap='gray' if matched_crop.ndim == 2 else None)
+    ax_matched.set_title("Matched region (red box)")
+    ax_matched.axis('off')
+
+    im = ax_result.imshow(result, cmap='viridis')
+    ax_result.set_title(f"Correlation map (score {score:.3f})")
+    fig.colorbar(im, ax=ax_result, fraction=0.046)
+
+    fig.suptitle(title)
+    plt.tight_layout()
+    plt.show()
+
+
 def detect_template(template: Union[str, list[str]],
                     secondary_template: Optional[Union[str, list[str]]] = None,
                     secondary_template_direction: str | None = None,
@@ -317,7 +382,8 @@ def detect_template(template: Union[str, list[str]],
                     max_waiting_time_seconds: float = np.inf,
                     multiple_matches_sorter: Optional[Union[Callable, np.ndarray]] = None,
                     multiple_matches_tolerance: float = DEFAULT_MULTIPLE_MATCHES_TOLERANCE,
-                    all_files_name_matching: bool = True) -> tuple[float, float] | None:
+                    all_files_name_matching: bool = True,
+                    debug: bool | str | float = False) -> tuple[float, float] | None:
     """Detect a template on screen, retrying until found, timed out, or skipped.
 
     Retries screenshots until the template appears or `max_waiting_time_seconds`
@@ -328,6 +394,16 @@ def detect_template(template: Union[str, list[str]],
     While searching, pressing SKIP_HOTKEY (Ctrl+Alt+F12) aborts the detection and
     returns None immediately, without warning or raising - so a script stuck on a
     template that never appears can be nudged forward manually.
+
+    `debug` opens a blocking matplotlib figure (screenshot / template / correlation
+    map) for the best-scoring match attempted this iteration:
+      - True: shown on every retry iteration.
+      - 'last': shown only for the final iteration (the one the function returns
+        after - found, timed out, or about to give up), so exactly one figure.
+      - a number: shown once, the first iteration whose elapsed waiting time
+        exceeds that many seconds.
+    Only the plain (non secondary_template) match is visualized; if the skip
+    hotkey aborts an attempt mid-search, no figure is shown for it.
     """
     if isinstance(template, list) and isinstance(secondary_template, list) \
             and len(template) != len(secondary_template):
@@ -351,6 +427,9 @@ def detect_template(template: Union[str, list[str]],
                                          grayscale_mode=grayscale_mode,
                                          return_all=all_files_name_matching)
 
+    debug_mode, debug_after_seconds = _resolve_debug_mode(debug)
+    debug_shown = False
+
     start_time = time.time()
     dot_count = 0
     with _skip_hotkey_armed():
@@ -363,6 +442,8 @@ def detect_template(template: Union[str, list[str]],
                 dots = '.' * (dot_count % 4)
                 print(f"Waiting for template '{template}' to appear{dots}   ", end="\r")
             screenshot = take_screenshot(grayscale_mode=grayscale_mode)
+            debug_capture = [] if debug_mode is not None else None
+            found_result = None
             for scale in TEMPLATE_SCALES:
                 for template_1, template_2 in template_pairs:
                     if _skip_was_requested(template):
@@ -383,11 +464,38 @@ def detect_template(template: Union[str, list[str]],
                         grayscale_mode=False,  # already grayscale if needed
                         multiple_matches_sorter=multiple_matches_sorter,
                         multiple_matches_tolerance=multiple_matches_tolerance,
+                        _debug_sink=debug_capture,
                     )
                     if detection_results is not None:
-                        print(f"\nFound template '{template}' at position {detection_results}")
-                        return detection_results[0], detection_results[1]
-            if max_waiting_time_seconds == 0 or (time.time() - start_time) > max_waiting_time_seconds:
+                        found_result = detection_results
+                        break
+                if found_result is not None:
+                    break
+
+            elapsed = time.time() - start_time
+            if found_result is not None:
+                print(f"\nFound template '{template}' at position {found_result}")
+
+            if debug_mode is not None and debug_capture:
+                best_capture = max(debug_capture, key=lambda e: e["score"])
+                is_final_iteration = (found_result is not None or max_waiting_time_seconds == 0
+                                      or elapsed > max_waiting_time_seconds)
+                show_now = not debug_shown and (
+                    debug_mode == 'always'
+                    or (debug_mode == 'last' and is_final_iteration)
+                    or (debug_mode == 'after_seconds' and elapsed > debug_after_seconds)
+                )
+                if show_now:
+                    outcome = "FOUND" if found_result is not None else "not found this attempt"
+                    _show_match_debug_figure(
+                        best_capture,
+                        f"detect_template('{template}') - attempt after {elapsed:.1f}s - {outcome}")
+                    if debug_mode != 'always':
+                        debug_shown = True
+
+            if found_result is not None:
+                return found_result[0], found_result[1]
+            if max_waiting_time_seconds == 0 or elapsed > max_waiting_time_seconds:
                 break
             dot_count += 1
             sleep(DETECTION_RETRY_SLEEP_SECONDS)
