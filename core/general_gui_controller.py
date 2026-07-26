@@ -551,6 +551,7 @@ def detect_template_and_act(
         max_waiting_time_seconds: float = np.inf,
         multiple_matches_sorter: Optional[Union[Callable, np.ndarray]] = None,
         multiple_matches_tolerance: float = DEFAULT_MULTIPLE_MATCHES_TOLERANCE,
+        debug: bool | str | float = False,
 ) -> tuple[float, float] | None:
     """Detect a template and act at its location: click (and optionally paste text),
     or just move the cursor there (place_cursor=True, click=False).
@@ -577,7 +578,7 @@ def detect_template_and_act(
                                       warn_if_not_found=warn_if_not_found, grayscale_mode=grayscale_mode,
                                       max_waiting_time_seconds=max_waiting_time_seconds,
                                       multiple_matches_sorter=multiple_matches_sorter,
-                                      multiple_matches_tolerance=multiple_matches_tolerance)
+                                      multiple_matches_tolerance=multiple_matches_tolerance, debug=debug)
     if coordinates is not None:
         if click:
             pyautogui.click(coordinates[0], coordinates[1])
