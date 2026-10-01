@@ -1,5 +1,6 @@
 from core.auto_operate_microscope import *
 from core.kalifcode import *
+from local_config import PATH_STT_MODEL
 
 locations_dict = memorize_locations()
 callback_map = {'twenty ten': lambda: take_all_images(magnification=10, side=2422, locations_dict=locations_dict),
@@ -28,4 +29,4 @@ callback_map = {'twenty ten': lambda: take_all_images(magnification=10, side=242
                 'exposure four': lambda: insert_exposure_time(5, 0, 0, locations_dict=locations_dict),
                 'exposure three': lambda: insert_exposure_time(3, 0, 0, locations_dict=locations_dict)}
 
-start_voice_listener(command_map=callback_map)
+start_voice_listener(model_path=PATH_STT_MODEL, command_map=callback_map)
