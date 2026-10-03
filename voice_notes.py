@@ -12,7 +12,7 @@ import sys
 from core.kalifcode import start_voice_listener
 from local_config import PATH_STT_MODEL, STT_MODEL_EN, STT_MODEL_EN_LARGE, STT_MODEL_EN_WHISPER, STT_MODEL_HE
 
-MODELS = {"default": (PATH_STT_MODEL, None), "en": (STT_MODEL_EN, "en"), "en-large": (STT_MODEL_EN_LARGE, "en"),
+MODELS = {"default": (PATH_STT_MODEL, "en"), "en": (STT_MODEL_EN, "en"), "en-large": (STT_MODEL_EN_LARGE, "en"),
           "en-whisper": (STT_MODEL_EN_WHISPER, "en"), "he": (STT_MODEL_HE, "he")}
 
 choice = sys.argv[1] if len(sys.argv) > 1 else "default"

@@ -14,7 +14,6 @@ import inspect
 import json
 import os
 import queue
-import time
 from collections import deque
 from datetime import datetime
 from pathlib import Path
@@ -33,7 +32,7 @@ FUZZY_CUTOFF = 0.8  # Minimal difflib ratio for a misheard command word to count
 PUNCTUATION = ",.!?:;\"'()-–—"
 FILLER_WORDS = {"the", "a", "uh", "um", "huh"}  # Skipped before a command and at the end of its argument
 END_PHRASES = ("over", "end log", "end notebook", "end note book")  # Said as their own sentence, end a dictation
-DICTATION_TIMEOUT = 120  # Seconds of silence after which an unfinished dictation is saved anyway
+DICTATION_TIMEOUT = 20  # Seconds of silence (in the audio, not counting transcription time) that end a dictation
 
 
 def log_notes(note: str, notes_path: str | Path = NOTES_PATH):
@@ -174,6 +173,9 @@ class _VoskEngine:
             return json.loads(self.recognizer.Result()).get("text", "")
         return None
 
+    def is_speaking(self) -> bool:
+        return bool(json.loads(self.recognizer.PartialResult()).get("partial"))
+
 
 class _WhisperEngine:
     """Cuts the audio into phrases with a simple energy-based voice detector, and transcribes each phrase."""
@@ -229,6 +231,9 @@ class _WhisperEngine:
             return None
         return self.transcribe(np.concatenate(phrase))
 
+    def is_speaking(self) -> bool:
+        return bool(self.phrase)
+
     def transcribe(self, samples: np.ndarray) -> str:
         audio = samples.astype(np.float32) / 32768
         # vad_filter drops non-speech parts, which otherwise make Whisper hallucinate text out of noise.
@@ -269,7 +274,7 @@ def start_voice_listener(model_path: str | Path, command_map: dict[str, Callable
         print(f"Dictation ends with: {', '.join(END_PHRASES)}")
         # A command that takes an argument starts a dictation: its argument is everything said until an end phrase,
         # however many pauses (phrases) it spans.
-        dictation_command, dictation_parts, last_heard = None, [], 0.0
+        dictation_command, dictation_parts, silent_blocks = None, [], 0
 
         def finish_dictation():
             nonlocal dictation_command, dictation_parts
@@ -281,13 +286,13 @@ def start_voice_listener(model_path: str | Path, command_map: dict[str, Callable
         try:
             while True:
                 text = engine.feed(audio_q.get())
-                if dictation_command and time.monotonic() - last_heard > DICTATION_TIMEOUT:
-                    print(f"[Dictation timeout]: no end phrase for {DICTATION_TIMEOUT} s, saving what was said")
+                silent_blocks = 0 if text or engine.is_speaking() else silent_blocks + 1
+                if dictation_command and silent_blocks * BLOCK_SIZE / SAMPLE_RATE > DICTATION_TIMEOUT:
+                    print(f"[Dictation timeout]: {DICTATION_TIMEOUT} s of silence, saving what was said")
                     finish_dictation()
                 if not text or not text.strip():
                     continue
                 text = text.strip()
-                last_heard = time.monotonic()
                 if print_speech:
                     print(f"[Recognized]: {text}")
 
