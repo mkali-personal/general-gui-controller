@@ -14,7 +14,9 @@ import inspect
 import json
 import os
 import queue
+import time
 from collections import deque
+from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
@@ -30,6 +32,8 @@ BLOCK_SIZE = 1600  # 0.1 s of audio per callback
 FUZZY_CUTOFF = 0.8  # Minimal difflib ratio for a misheard command word to count (e.g. "blog" -> "log")
 PUNCTUATION = ",.!?:;\"'()-–—"
 FILLER_WORDS = {"the", "a", "uh", "um", "huh"}  # Skipped before a command and at the end of its argument
+END_PHRASES = ("over", "end log", "end notebook", "end note book")  # Said as their own sentence, end a dictation
+DICTATION_TIMEOUT = 120  # Seconds of silence after which an unfinished dictation is saved anyway
 
 
 def log_notes(note: str, notes_path: str | Path = NOTES_PATH):
@@ -50,7 +54,7 @@ def log_notes(note: str, notes_path: str | Path = NOTES_PATH):
                 prefix = "\n"
 
     with open(notes_path, "a", encoding="utf-8") as f:
-        f.write(f"{prefix}* Voice log: {note}\n")
+        f.write(f"{prefix}* Voice log ({datetime.now():%Y%m%d %H:%M:%S}): {note}\n")
 
     print(f"Logged: {note}")
     _notify("Note logged", note)
@@ -120,12 +124,34 @@ def _match_leading_words(normalized: list[str], command_map: dict[str, Callable]
     return best_command
 
 
+def _split_end_phrase(text: str) -> tuple[str, bool]:
+    """
+    Remove an end phrase from the end of the text. Returns (text before it, whether it was there).
+    The end phrase must be its own sentence ("...the large mirror. Over."), so "I moved it over" does not end the
+    dictation.
+    """
+    words = text.split()
+    normalized = [w.strip(PUNCTUATION).lower() for w in words]
+    for phrase in sorted(END_PHRASES, key=lambda p: len(p.split()), reverse=True):
+        n = len(phrase.split())
+        if normalized[-n:] != phrase.split():
+            continue
+        before = words[:-n]
+        if not before or before[-1][-1] in ".,!?;:":
+            return " ".join(before).rstrip(" ,;:"), True
+    return text, False
+
+
 def run_command(text: str, command_map: dict[str, Callable]) -> bool:
     """Run the command said in the text. Returns whether a command was found."""
     match = match_command(text, command_map)
     if match is None:
         return False
-    command, argument = match
+    _execute(*match, text, command_map)
+    return True
+
+
+def _execute(command: str, argument: str, text: str, command_map: dict[str, Callable]):
     func = command_map[command]
     try:
         if _takes_argument(func):
@@ -136,7 +162,6 @@ def run_command(text: str, command_map: dict[str, Callable]) -> bool:
             func()
     except Exception as e:
         print(f"[ERROR running '{command}' with argument '{argument}']: {e}")
-    return True
 
 
 class _VoskEngine:
@@ -241,14 +266,48 @@ def start_voice_listener(model_path: str | Path, command_map: dict[str, Callable
     with sd.RawInputStream(samplerate=SAMPLE_RATE, blocksize=BLOCK_SIZE, dtype="int16", channels=1,
                            callback=audio_callback):
         print(f"Listening for: {', '.join(command_map)}  (Ctrl+C to stop)")
+        print(f"Dictation ends with: {', '.join(END_PHRASES)}")
+        # A command that takes an argument starts a dictation: its argument is everything said until an end phrase,
+        # however many pauses (phrases) it spans.
+        dictation_command, dictation_parts, last_heard = None, [], 0.0
+
+        def finish_dictation():
+            nonlocal dictation_command, dictation_parts
+            if dictation_command and dictation_parts:
+                argument = " ".join(dictation_parts)
+                _execute(dictation_command, argument, argument, command_map)
+            dictation_command, dictation_parts = None, []
+
         try:
             while True:
                 text = engine.feed(audio_q.get())
+                if dictation_command and time.monotonic() - last_heard > DICTATION_TIMEOUT:
+                    print(f"[Dictation timeout]: no end phrase for {DICTATION_TIMEOUT} s, saving what was said")
+                    finish_dictation()
                 if not text or not text.strip():
                     continue
                 text = text.strip()
+                last_heard = time.monotonic()
                 if print_speech:
                     print(f"[Recognized]: {text}")
-                run_command(text, command_map)
+
+                match = match_command(text, command_map)
+                if match is not None:
+                    finish_dictation()  # A new command means the previous dictation is over
+                    command, text = match
+                    if not _takes_argument(command_map[command]):
+                        _execute(command, text, text, command_map)
+                        continue
+                    dictation_command = command
+                    print(f"[Dictating]: '{command}' until you say an end phrase")
+                elif dictation_command is None:
+                    continue
+
+                text, ended = _split_end_phrase(text)
+                if text:
+                    dictation_parts.append(text)
+                if ended:
+                    finish_dictation()
         except KeyboardInterrupt:
+            finish_dictation()
             print("Stopped listening.")

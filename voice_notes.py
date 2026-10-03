@@ -1,5 +1,6 @@
 """
-Say "log <something>" / "notebook <something>" (or "רשום <something>") to append "* Voice log: <something>" to local_config.NOTES_PATH.
+Say "log <something>" / "notebook <something>" (or "רשום <something>"), then "over" / "end log" / "end notebook", to append
+"* Voice log (yyyymmdd hh:mm:ss): <something>" to local_config.NOTES_PATH. <something> may span several pauses.
 
 uv run voice_notes.py            -> default model (local_config.PATH_STT_MODEL)
 uv run voice_notes.py en-large   -> large English model (Vosk)
