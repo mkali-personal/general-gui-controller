@@ -42,12 +42,12 @@ Combines `detect_template` with a set of actions to be performed when the templa
 
 `kalifcode.start_voice_listener`:
 Continuously listens (offline) for a voice command, and when it hears defined keywords, it runs a corresponding function. - good for work in the lab where the hands are pre-occupied.
-Built-in commands: "log <text>" / "notebook <text>" / "רשום <text>" appends `* Voice log: <text>` to the markdown file `NOTES_PATH`. `type_text` (paste at the cursor) can be added with `command_map={"type": type_text}`.
+Built-in commands: "log <text>" / "notebook <text>" / "רשום <text>" appends `* Voice log: <text>` to the markdown file passed as `notes_path`. `type_text` (paste at the cursor) can be added with `command_map={"type": type_text}`.
 The model folder passed to `start_voice_listener(model_path, ...)` selects the engine:
 * [Vosk](https://alphacephei.com/vosk/models) models (e.g. `vosk-model-en-us-0.22-lgraph`, `vosk-model-en-us-0.22`) - real time, English, best for short fixed commands.
 * faster-whisper (CTranslate2) models, e.g. [ivrit-ai/whisper-large-v3-turbo-ct2](https://huggingface.co/ivrit-ai/whisper-large-v3-turbo-ct2) for Hebrew - much more accurate on free speech, but transcribes each phrase after you stop talking (~13 s per phrase on the lab PC's CPU). Needs an up-to-date [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe) - older ones make it crash on load.
 
-Setup: put the models in `models/` and set their paths and `NOTES_PATH` in `local_config.py`. Then run `uv run voice_notes.py` (default model), `uv run voice_notes.py en-large`, `uv run voice_notes.py en-whisper` or `uv run voice_notes.py he`.
+Setup: put the models in `models/` and set their paths in `local_config.py`, and `NOTES_PATH` in `voice_notes.py`. Then run `uv run voice_notes.py` (default model), `uv run voice_notes.py en-large`, `uv run voice_notes.py en-whisper` or `uv run voice_notes.py he`.
 
 ### Note:
 The directory is organized such that the core of the code is in the `core` folder, while the actual automations files are in the main folder. This is intentional, and allows to run the script from the main folder both from the IDE and directly from the os system, without having to reconfigure the current working directory. 

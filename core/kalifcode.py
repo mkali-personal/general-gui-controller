@@ -23,7 +23,6 @@ import numpy as np
 import sounddevice as sd
 from plyer import notification
 
-from local_config import NOTES_PATH
 from core.general_gui_controller import paste_value
 
 SAMPLE_RATE = 16000
@@ -35,7 +34,7 @@ END_PHRASES = ("over", "end log", "end notebook", "end note book")  # Said as th
 DICTATION_TIMEOUT = 20  # Seconds of silence (in the audio, not counting transcription time) that end a dictation
 
 
-def log_notes(note: str, notes_path: str | Path = NOTES_PATH):
+def log_notes(note: str, notes_path: str | Path):
     """Append the note as a markdown bullet to the end of the notes file."""
     note = note.strip()
     if not note:
@@ -66,7 +65,7 @@ def type_text(text: str):
 
 # type_text is not a default: a misheard "type" would paste text into whatever window is focused.
 # Opt in with command_map={"type": type_text}.
-DEFAULT_COMMANDS: dict[str, Callable] = {"log": log_notes, "notebook": log_notes, "note book": log_notes, "רשום": log_notes}
+NOTE_COMMANDS = ("log", "notebook", "note book", "רשום")  # Append a note to notes_path, when it is given
 
 
 def _notify(title: str, message: str):
@@ -247,16 +246,20 @@ def _is_vosk_model(model_path: Path) -> bool:
 
 
 def start_voice_listener(model_path: str | Path, command_map: dict[str, Callable] | None = None,
-                         language: str | None = None, print_speech: bool = True):
+                         language: str | None = None, print_speech: bool = True, notes_path: str | Path | None = None):
     """
     Listen to the default microphone forever (Ctrl+C to stop) and run the commands that are said.
 
     model_path: a Vosk model folder, or a faster-whisper (CTranslate2) model folder.
-    command_map: phrase -> function, added to DEFAULT_COMMANDS.
+    command_map: phrase -> function, added to the NOTE_COMMANDS.
     language: Whisper language code (e.g. "he", "en"); None auto-detects. Ignored by Vosk models.
+    notes_path: markdown file that the NOTE_COMMANDS append to; None disables them.
     """
     model_path = Path(model_path)
-    command_map = {**DEFAULT_COMMANDS, **(command_map or {})}
+    note_commands = {}
+    if notes_path is not None:
+        note_commands = {command: lambda note: log_notes(note, notes_path) for command in NOTE_COMMANDS}
+    command_map = {**note_commands, **(command_map or {})}
     command_map = {k.lower(): v for k, v in command_map.items()}
 
     print(f"Loading speech model from {model_path} ...")
