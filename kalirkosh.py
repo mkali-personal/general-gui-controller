@@ -148,10 +148,7 @@ def parse_quote_table(df: pd.DataFrame, rosh_electroptics_format: bool = False, 
     df['quantity'] = df['quantity'].apply(clean_number)
     return df
 #
-df = pd.read_csv(r"C:\Users\michaeka\Weizmann Institute Dropbox\Michael Kali\Labs Dropbox\Lab utilities\Tafnit\Food\Halil order.csv")
-parse_quote_table(df=df, rosh_electroptics_format=False, scientific=False)
 
-# record_gui_template()
 notify_main_screen()
 winsound.Beep(880, 500)
 input("got to the TAFNIT main window, and make sure it is maximized on your main screen (where the notification is).\n"
