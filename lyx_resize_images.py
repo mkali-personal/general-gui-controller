@@ -140,27 +140,32 @@ def resize_images(lyx_text: str, lyx_dir: str) -> tuple[str, int, int]:
 
 # --- Main ----------------------------------------------------------------------------------------
 
-lyx_file, unsaved = open_lyx_document()
-print(f"Open LyX document: {lyx_file}")
-if unsaved:
-    send_lyx_command('buffer-write')
-    deadline = time.time() + SAVE_TIMEOUT_SECONDS
-    while open_lyx_document()[1]:
-        if time.time() > deadline:
-            raise RuntimeError("[ERROR] LyX did not save the document - nothing was changed.")
-        time.sleep(0.2)
+def main() -> None:
+    lyx_file, unsaved = open_lyx_document()
+    print(f"Open LyX document: {lyx_file}")
+    if unsaved:
+        send_lyx_command('buffer-write')
+        deadline = time.time() + SAVE_TIMEOUT_SECONDS
+        while open_lyx_document()[1]:
+            if time.time() > deadline:
+                raise RuntimeError("[ERROR] LyX did not save the document - nothing was changed.")
+            time.sleep(0.2)
 
-with open(lyx_file, encoding='utf-8', newline='') as file:
-    raw_text = file.read()
-line_ending = '\r\n' if '\r\n' in raw_text else '\n'  # LyX on Windows writes \r\n; keep whatever the file has
-text = raw_text.replace('\r\n', '\n')
-new_text, resized, skipped = resize_images(text, os.path.dirname(lyx_file))
-if resized:
-    with open(lyx_file, 'w', encoding='utf-8', newline=line_ending) as file:
-        file.write(new_text)
-    # LyX notices the change a second or two later; a reload sent before that is undone by the notice.
-    wait_until_title_says('modified externally', present=True, timeout=CHANGE_NOTICE_TIMEOUT_SECONDS)
-    send_lyx_command('buffer-reload')
-    if not wait_until_title_says('modified externally', present=False, timeout=5):
-        print("LyX did not reload by itself - click 'Reload' in LyX's message about the changed file.")
-print(f"Resized {resized} image(s), left {skipped} image(s) that already had a size.")
+    with open(lyx_file, encoding='utf-8', newline='') as file:
+        raw_text = file.read()
+    line_ending = '\r\n' if '\r\n' in raw_text else '\n'  # LyX on Windows writes \r\n; keep whatever the file has
+    text = raw_text.replace('\r\n', '\n')
+    new_text, resized, skipped = resize_images(text, os.path.dirname(lyx_file))
+    if resized:
+        with open(lyx_file, 'w', encoding='utf-8', newline=line_ending) as file:
+            file.write(new_text)
+        # LyX notices the change a second or two later; a reload sent before that is undone by the notice.
+        wait_until_title_says('modified externally', present=True, timeout=CHANGE_NOTICE_TIMEOUT_SECONDS)
+        send_lyx_command('buffer-reload')
+        if not wait_until_title_says('modified externally', present=False, timeout=5):
+            print("LyX did not reload by itself - click 'Reload' in LyX's message about the changed file.")
+    print(f"Resized {resized} image(s), left {skipped} image(s) that already had a size.")
+
+
+if __name__ == '__main__':
+    main()
